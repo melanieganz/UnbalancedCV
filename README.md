@@ -1,6 +1,19 @@
 # UnbalancedCV
 This repository is a playground for testing the effect of summarizing cross-validation results in the unbalanced data setting. 
 
+## setting up the jupyter notebook - Franzi's setup:
+```
+conda create -n unbalancedcv  python=3.10
+conda activate unbalancedcv
+conda install jupyter
+conda install pytorch
+pip install matplotlib
+```
+now run the jupyter notebook from inside the repo dir
+```
+jupyter notebook
+```
+
 ## Intro
 This is a playground to test out the statistical properties of different ways of summarizing cross-validation results in the unbalanced data setting. The premise is to compare the summarizing metrics - accuracy, sensitivity, specificity, etc. - as well as average metrics - AUC, AUPRC - in the case where predictions are summarizes in scores per test fold vs. across all test folds.
 
