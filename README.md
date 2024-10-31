@@ -30,24 +30,24 @@ Drawbacks of this approach:
 *In can also lead to some test sets having very "easy" and clean classification points in it whereas others are hard.
 *The estimation of the acc_k is based on only n/k samples instead of n, yielding a worse statistical estimate of acc_k.
 
-### Approach 2 : K-fold cross validation with k test sets and calculate onyl a single accuracy across the predictiosn of all k test sets
+### Approach 2 : K-fold cross validation with k test sets and calculate only a single accuracy across the predictiosn of all k test sets
 
 Let's say we want to do k-fold cross-validation. 
 
-1. We split D into k non-overlapping data sets.
+1. We split D into k non-overlapping data sets. [*Franzi question: do we only this once at the beginning? or do we repeat this in each cycle? if we re-do this how is this different from above?*]
 2. The k sets are then divided further into D_train (k-1 of the sets), and D_test (the kth set).
 3. We train a classifier on D_train.
-4. We evaluate the trained classifer on D_test and record only te predictions. 
-5. We go back to step 1 and repeat k-1 more times and end therefor up with k prediction vectors, each on a different D_test.
+4. We evaluate the trained classifer on D_test and record only the predictions \hat{y}_k on the kth set that was not used for training [*Franzi: this is the same as a above right? now whether you store the predictions or the acc_k - I don't think matters?*]  
+5. We go back to step 1 and repeat k-1 more times and end therefor up with k prediction vectors, each on a different D_test. [*Franzi are we going back to step 1 or step 2?*]
 
-After this finishes we have n prediction estimates across the k folds. We report the final acc_cv = acc([pred_1, pred_2, ..., pred_k]).
+After this finishes we have n prediction estimates across the k folds. We report the final acc_cv = acc([pred_1, pred_2, ..., pred_k]). 
 
 Advantages of this approach:
 *The estimation of the acc_cv is based on all n samples.
-*Espåecially int eh unbalanced the case, the imbalance is not changed.
+*Especially in the unbalanced case, the imbalance is not changed.
 
 Drawbacks of this approach: 
-*We only get a single accuracy from running one k-fold cross-validation. Thsi can though be mitigated by runnign e.g. 50 times randomized k-fold cross-validation as advertised by paper 2 below.
+*We only get a single accuracy from running one k-fold cross-validation. This can though be mitigated by runnign e.g. 50 times randomized k-fold cross-validation as advertised by paper 2 below.
 
 ## Randomzied cross-validation
 
