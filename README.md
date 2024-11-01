@@ -36,31 +36,31 @@ Let's say we want to do k-fold cross-validation.
 After this finishes we have k accuracies acc_k. We typically report the final acc_cv = mean([acc_1, acc_2, ..., acc_k])
 
 Advantages of this approach:
-*We can not only calculate a mean but also a standard deviation sof accuracies across the 10 folds. The properties of this standard deviation are though not clear.
+* We can not only calculate a mean but also a standard deviation sof accuracies across the 10 folds. The properties of this standard deviation are though not clear.
 
 Drawbacks of this approach: 
-*In unbalanced datasets this can lead to the k folds not being balanced in the same way, even if we try to sample the k-folds in a stratified manner (see e.g. [here](https://scikit-learn.org/dev/modules/generated/sklearn.model_selection.StratifiedKFold.html))
-*In can also lead to some test sets having very "easy" and clean classification points in it whereas others are hard.
-*The estimation of the acc_k is based on only n/k samples instead of n, yielding a worse statistical estimate of acc_k.
+* In unbalanced datasets this can lead to the k folds not being balanced in the same way, even if we try to sample the k-folds in a stratified manner (see e.g. [here](https://scikit-learn.org/dev/modules/generated/sklearn.model_selection.StratifiedKFold.html))
+* In can also lead to some test sets having very "easy" and clean classification points in it whereas others are hard.
+   The estimation of the acc_k is based on only n/k samples instead of n, yielding a worse statistical estimate of acc_k.
 
 ### Approach 2 : K-fold cross validation with k test sets and calculate only a single accuracy across the predictiosn of all k test sets
 
 Let's say we want to do k-fold cross-validation. 
 
-1. We split D into k non-overlapping data sets. [*Franzi question: do we only this once at the beginning? or do we repeat this in each cycle? if we re-do this how is this different from above?*]
+1. We split D into k non-overlapping data sets. [*Franzi question: do we only this once at the beginning? or do we repeat this in each cycle? if we re-do this how is this different from above?* Mel answer: This is eaxctly not different from the above.]
 2. The k sets are then divided further into D_train (k-1 of the sets), and D_test (the kth set).
 3. We train a classifier on D_train.
-4. We evaluate the trained classifer on D_test and record only the predictions \hat{y}_k on the kth set that was not used for training [*Franzi: this is the same as a above right? now whether you store the predictions or the acc_k - I don't think matters?*]  
-5. We go back to step 1 and repeat k-1 more times and end therefor up with k prediction vectors, each on a different D_test. [*Franzi are we going back to step 1 or step 2?*]
+4. We evaluate the trained classifer on D_test and record only the predictions \hat{y}_k on the kth set that was not used for training [*Franzi: this is the same as a above right? now whether you store the predictions or the acc_k - I don't think matters?* Mel answer: Actually, this is the whole point. Think about accuracy or the area under the ROC curve as a non-linear transformation. It matters if one does that non-linear transformation once on the whole dataset or does it several times on smaller datastes and averages. This is the pet peeve I was exctly talking about.]  
+5. We go back to step 1 and repeat k-1 more times and end therefor up with k prediction vectors, each on a different D_test. [*Franzi are we going back to step 1 or step 2?* Mel answer: sorry for not being clear, step 2]
 
 After this finishes we have n prediction estimates across the k folds. We report the final acc_cv = acc([pred_1, pred_2, ..., pred_k]). 
 
 Advantages of this approach:
-*The estimation of the acc_cv is based on all n samples.
-*Especially in the unbalanced case, the imbalance is not changed.
+* The estimation of the acc_cv is based on all n samples.
+* Especially in the unbalanced case, the imbalance is not changed.
 
 Drawbacks of this approach: 
-*We only get a single accuracy from running one k-fold cross-validation. This can though be mitigated by runnign e.g. 50 times randomized k-fold cross-validation as advertised by paper 2 below.
+* We only get a single accuracy from running one k-fold cross-validation. This can though be mitigated by runnign e.g. 50 times randomized k-fold cross-validation as advertised by paper 2 below.
 
 ## Randomzied cross-validation
 
