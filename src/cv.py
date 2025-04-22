@@ -15,53 +15,55 @@ def run_cv(
     n_splits: int = 5,
     stratified: bool = False,
     random_state: int = 0,
-) -> list[dict]:
+) -> dict:
     """
-    Perform K‑fold (optionally stratified) CV and compute arbitrary metrics.
-
-    Parameters
-    ----------
-    model
-        Any sklearn‐style estimator with .fit, .predict, .predict_proba
-    X, y
-        Data.
-    metrics
-        Dict mapping metric‐name → function(y_true, y_pred, y_proba).
-    n_splits
-        Number of folds.
-    stratified
-        If True, use StratifiedKFold; else plain KFold.
-    random_state
-        For shuffle reproducibility.
+    Perform K‑fold (optionally stratified) CV, compute each metric per fold,
+    and also compute each metric on the pooled predictions across all folds.
 
     Returns
     -------
-    results : list of dict
-        One dict per fold, with keys:
-        - 'fold', 'n_train', 'n_test'
-        - one key per metric name, with its score.
+    {
+      "folds": [ {fold metrics}, ... ],
+      "pooled": { aggregated metrics on all samples }
+    }
     """
     CV = StratifiedKFold if stratified else KFold
     cv = CV(n_splits=n_splits, shuffle=True, random_state=random_state)
-    all_results = []
+
+    fold_results = []
+    y_true_all = []
+    y_pred_all = []
+    y_proba_all = []
+
     for fold, (train_idx, test_idx) in enumerate(cv.split(X, y)):
         X_tr, X_te = X[train_idx], X[test_idx]
         y_tr, y_te = y[train_idx], y[test_idx]
 
         model.fit(X_tr, y_tr)
         y_pred = model.predict(X_te)
-        # some metrics (like AUC) need probabilities:
         y_proba = None
         if hasattr(model, "predict_proba"):
             y_proba = model.predict_proba(X_te)[:, 1]
 
-        res = {
-            "fold": fold,
-            "n_train": len(train_idx),
-            "n_test": len(test_idx),
-        }
+        # accumulate for pooling
+        y_true_all.extend(y_te)
+        y_pred_all.extend(y_pred)
+        if y_proba is not None:
+            y_proba_all.extend(y_proba)
+
+        # per‑fold metrics
+        res = {"fold": fold, "n_train": len(train_idx), "n_test": len(test_idx)}
         for name, fn in metrics.items():
             res[name] = fn(y_te, y_pred, y_proba)
-        all_results.append(res)
+        fold_results.append(res)
 
-    return all_results
+    # compute pooled metrics
+    y_true_all = np.array(y_true_all)
+    y_pred_all = np.array(y_pred_all)
+    y_proba_all = np.array(y_proba_all) if y_proba_all else None
+
+    pooled = {"n_total": len(y_true_all)}
+    for name, fn in metrics.items():
+        pooled[name] = fn(y_true_all, y_pred_all, y_proba_all)
+
+    return {"folds": fold_results, "pooled": pooled}
