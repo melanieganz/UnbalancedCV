@@ -8,8 +8,8 @@ import pytest
 # allow importing from src/
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
-from cv import run_cv
-from metrics import accuracy, auc
+from src.cv import run_cv
+from src.metrics import accuracy, auc
 
 
 class SimpleModel:
@@ -26,55 +26,54 @@ class SimpleModel:
 
 
 def test_run_cv_perfect_classifier():
+    # Simple dataset where feature == label
     X = np.array([[0], [1], [0], [1]])
     y = np.array([0, 1, 0, 1])
 
     metrics = {"accuracy": accuracy, "auc": auc}
     model = SimpleModel()
 
-    result = run_cv(model, X, y, metrics, n_splits=2, stratified=True, random_state=0)
-    folds = result["folds"]
+    result = run_cv(model=model, X=X, y=y, metrics=metrics, n_splits=2, stratified=True, random_state=0)
+
+    avg = result["average"]
     pooled = result["pooled"]
 
-    # Should have 2 folds
-    assert isinstance(folds, list)
-    assert len(folds) == 2
+    # Fold‐average should be perfect
+    assert avg["accuracy"] == pytest.approx(1.0)
+    assert avg["auc"] == pytest.approx(1.0)
 
-    # Each fold is perfect
-    for res in folds:
-        assert set(res.keys()) >= {"fold", "n_train", "n_test", "accuracy", "auc"}
-        assert res["accuracy"] == 1.0
-        assert pytest.approx(res["auc"], rel=1e-9) == 1.0
-
-    # Pooled across all folds is also perfect
-    assert pooled["accuracy"] == 1.0
-    assert pytest.approx(pooled["auc"], rel=1e-9) == 1.0
+    # Pooled over all folds also perfect
+    assert pooled["accuracy"] == pytest.approx(1.0)
+    assert pooled["auc"] == pytest.approx(1.0)
 
 
 def test_run_cv_stratification_effect():
-    # 50 samples: 45 negatives, 5 positives
+    # 50 samples: 45 negatives (0), 5 positives (1)
     X = np.array([[0]] * 45 + [[1]] * 5)
     y = np.array([0] * 45 + [1] * 5)
 
     metrics = {"accuracy": accuracy, "auc": auc}
     model = SimpleModel()
 
-    non_strat_result = run_cv(model, X, y, metrics, n_splits=5, stratified=False, random_state=0)
-    strat_result = run_cv(model, X, y, metrics, n_splits=5, stratified=True, random_state=0)
+    non_strat_res = run_cv(model=model, X=X, y=y, metrics=metrics, n_splits=5, stratified=False, random_state=0)
+    strat_res = run_cv(model=model, X=X, y=y, metrics=metrics, n_splits=5, stratified=True, random_state=0)
 
-    non_strat_folds = non_strat_result["folds"]
-    strat_folds = strat_result["folds"]
-    non_strat_pooled = non_strat_result["pooled"]
-    strat_pooled = strat_result["pooled"]
+    avg_non = non_strat_res["average"]
+    pooled_non = non_strat_res["pooled"]
 
-    # Stratified: exactly 1 positive per fold → perfect AUC each fold
-    for res in strat_folds:
-        assert pytest.approx(res["auc"], rel=1e-9) == 1.0
-    # Stratified pooled is also perfect
-    assert pytest.approx(strat_pooled["auc"], rel=1e-9) == 1.0
+    avg_strat = strat_res["average"]
+    pooled_strat = strat_res["pooled"]
 
-    # Non‑stratified: at least one fold has zero positives → AUC nan
-    assert any(np.isnan(res["auc"]) for res in non_strat_folds)
+    # Stratified: exactly one positive per fold → perfect AUC everywhere
+    assert avg_strat["accuracy"] == pytest.approx(1.0)
+    assert avg_strat["auc"] == pytest.approx(1.0)
+    assert pooled_strat["accuracy"] == pytest.approx(1.0)
+    assert pooled_strat["auc"] == pytest.approx(1.0)
+
+    # Non‑stratified: some folds lack positives → fold‐average AUC is nan
+    assert avg_non["accuracy"] == pytest.approx(1.0)
+    assert np.isnan(avg_non["auc"])
+
     # But pooled over all folds recovers perfect AUC
-    assert non_strat_pooled["accuracy"] == 1.0
-    assert pytest.approx(non_strat_pooled["auc"], rel=1e-9) == 1.0
+    assert pooled_non["accuracy"] == pytest.approx(1.0)
+    assert pooled_non["auc"] == pytest.approx(1.0)

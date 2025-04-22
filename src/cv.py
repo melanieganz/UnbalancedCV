@@ -18,14 +18,9 @@ def run_cv(
 ) -> dict:
     """
     Perform K‑fold (optionally stratified) CV, compute each metric per fold,
-    and also compute each metric on the pooled predictions across all folds.
-
-    Returns
-    -------
-    {
-      "folds": [ {fold metrics}, ... ],
-      "pooled": { aggregated metrics on all samples }
-    }
+    then return:
+      - average: dict of average metric over folds
+      - pooled:  dict of metric computed on all test‑fold predictions concatenated
     """
     CV = StratifiedKFold if stratified else KFold
     cv = CV(n_splits=n_splits, shuffle=True, random_state=random_state)
@@ -35,7 +30,7 @@ def run_cv(
     y_pred_all = []
     y_proba_all = []
 
-    for fold, (train_idx, test_idx) in enumerate(cv.split(X, y)):
+    for train_idx, test_idx in cv.split(X, y):
         X_tr, X_te = X[train_idx], X[test_idx]
         y_tr, y_te = y[train_idx], y[test_idx]
 
@@ -51,19 +46,19 @@ def run_cv(
         if y_proba is not None:
             y_proba_all.extend(y_proba)
 
-        # per‑fold metrics
-        res = {"fold": fold, "n_train": len(train_idx), "n_test": len(test_idx)}
-        for name, fn in metrics.items():
-            res[name] = fn(y_te, y_pred, y_proba)
-        fold_results.append(res)
+        # per‑fold metric values only (we'll average below)
+        fold_results.append({name: fn(y_te, y_pred, y_proba) for name, fn in metrics.items()})
+
+    # compute average across folds
+    average = {name: float(np.mean([fr[name] for fr in fold_results])) for name in metrics.keys()}
 
     # compute pooled metrics
     y_true_all = np.array(y_true_all)
     y_pred_all = np.array(y_pred_all)
     y_proba_all = np.array(y_proba_all) if y_proba_all else None
 
-    pooled = {"n_total": len(y_true_all)}
+    pooled = {}
     for name, fn in metrics.items():
         pooled[name] = fn(y_true_all, y_pred_all, y_proba_all)
 
-    return {"folds": fold_results, "pooled": pooled}
+    return {"average": average, "pooled": pooled}
