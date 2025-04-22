@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "unbalancedcv"
+name = "src"
 version = "0.1.0"
 description = ""
 authors = ["RDoerfel <doerfelruben@aol.com>"]
@@ -11,6 +11,7 @@ jupyter = "^1.1.1"
 scikit-learn = "^1.6.1"
 quarto = "^0.1.0"
 matplotlib = "^3.10.1"
+pytest = "^8.3.5"
 
 
 [build-system]
