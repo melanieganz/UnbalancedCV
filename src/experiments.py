@@ -54,8 +54,7 @@ def experiment_unbalanced_size(
     y_proba_gen = clf_full.predict_proba(X_gen)[:, 1]
 
     # Compute metrics directly
-    acc_gen = accuracy(y_gen, y_pred_gen, None)
-    auc_gen = auc(y_gen, None, y_proba_gen)
-
-    print(f"Generalization accuracy: {acc_gen:.3f}")
-    print(f"Generalization AUC:      {auc_gen:.3f}")
+    print("Generalization metrics:")
+    for name, function in metrics.items():
+        score = function(y_gen, y_pred_gen, y_proba_gen)
+        print(f"  {name}: {score:.4f}")
