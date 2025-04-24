@@ -1,11 +1,13 @@
 from src.simulations import simulate_dataset
 from src.cv import run_cv
-from src.metrics import accuracy, auc
+from src.metrics import create_metrics
 from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
 
 
-def experiment_unbalanced_size(pos_ratio: float = 0.1, n_samples: int = 1000) -> None:
+def experiment_unbalanced_size(
+    pos_ratio: float = 0.1, n_samples: int = 1000, eval_metrics: list = ["accuracy", "auc"]
+) -> None:
     """
     Compare the effect of class imbalance on model performance.
     Use a simple logistic regression model and evaluate accuracy and AUC.
@@ -27,10 +29,7 @@ def experiment_unbalanced_size(pos_ratio: float = 0.1, n_samples: int = 1000) ->
     # Define model and metrics
     model = LogisticRegression()
 
-    metrics = {
-        "accuracy": accuracy,
-        "auc": auc,
-    }
+    metrics = create_metrics(eval_metrics)
 
     # Run cross-validation
     results = run_cv(model, X, y, metrics, n_splits=5, stratified=True)
