@@ -1,15 +1,9 @@
 # tests/test_cv.py
-
-import os
-import sys
-import numpy as np
-import pytest
-
-# allow importing from src/
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
-
 from src.cv import run_cv
 from src.metrics import accuracy, auc
+
+import numpy as np
+import pytest
 
 
 class SimpleModel:

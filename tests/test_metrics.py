@@ -1,13 +1,8 @@
 # tests/test_metrics.py
+from src.metrics import accuracy, auc
 
-import os
-import sys
 import numpy as np
 import pytest
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
-
-from metrics import accuracy, auc
 
 
 def test_accuracy_perfect_and_zero():

@@ -1,14 +1,8 @@
 # tests/test_simulations.py
+from src.simulations import simulate_dataset
 
-import os
-import sys
 import numpy as np
 import pytest
-
-# so we can import simulations.py
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
-
-from simulations import simulate_dataset
 
 
 def test_shapes_and_types():
