@@ -17,6 +17,4 @@ We simulate a two class problem $y\in{0,1}$. Both classes are drawn from a Guass
 
 ```{python}
 experiment_unbalanced_size(pos_ratio = 0.1, n_samples = 100)
-experiment_unbalanced_size(pos_ratio = 0.1, n_samples = 1000)
-experiment_unbalanced_size(pos_ratio = 0.1, n_samples = 10000)
 ```
