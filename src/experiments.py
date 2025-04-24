@@ -39,16 +39,6 @@ def experiment_unbalanced_size(
     # Run cross-validation
     results = run_cv(model, X, y, metrics, n_splits=5, stratified=True)
 
-    # Print results
-    if verbose:
-        print(f"Results for pos_ratio={pos_ratio}, n_samples={n_samples}:")
-        print("Average metrics:")
-        for name, value in results["average"].items():
-            print(f"  {name}: {value:.4f}")
-        print("Pooled metrics:")
-        for name, value in results["pooled"].items():
-            print(f"  {name}: {value:.4f}")
-
     # Simulate a new dataset for generalization
     X_gen, y_gen = simulate_dataset(1000, 0.1, -1, 1, 1, 1, seed=seed)
 
@@ -59,9 +49,14 @@ def experiment_unbalanced_size(
     y_pred_gen = clf_full.predict(X_gen)
     y_proba_gen = clf_full.predict_proba(X_gen)[:, 1]
 
-    # Compute metrics directly
+    # add generalization to the results
+    results["generalized"] = {}
+    for name, function in metrics.items():
+        score = function(y_gen, y_pred_gen, y_proba_gen)
+        results["generalized"][name] = score
+
     if verbose:
-        print("Generalization metrics:")
-        for name, function in metrics.items():
-            score = function(y_gen, y_pred_gen, y_proba_gen)
-            print(f"  {name}: {score:.4f}")
+        for result_type, result in results.items():
+            print(f"{result_type.capitalize()} metrics:")
+            for name, value in result.items():
+                print(f"  {name}: {value:.4f}")
