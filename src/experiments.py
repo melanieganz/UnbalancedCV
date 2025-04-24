@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 def experiment_unbalanced_size(
-    pos_ratio: float = 0.1, n_samples: int = 1000, eval_metrics: list = ["accuracy", "auc"]
+    pos_ratio: float = 0.1, n_samples: int = 1000, eval_metrics: list = ["accuracy", "auc"], seed: int = 123
 ) -> None:
     """
     Compare the effect of class imbalance on model performance.
@@ -14,7 +14,7 @@ def experiment_unbalanced_size(
     """
 
     # Simulate dataset
-    X, y = simulate_dataset(n_samples, pos_ratio, -1, 1, 1, 1, seed=123)
+    X, y = simulate_dataset(n_samples, pos_ratio, -1, 1, 1, 1, seed=seed)
 
     # plot the dataset
     fig, ax = plt.subplots()
@@ -44,7 +44,7 @@ def experiment_unbalanced_size(
         print(f"  {name}: {value:.4f}")
 
     # Simulate a new dataset for generalization
-    X_gen, y_gen = simulate_dataset(1000, 0.1, -1, 1, 1, 1, seed=123)
+    X_gen, y_gen = simulate_dataset(1000, 0.1, -1, 1, 1, 1, seed=seed)
 
     # fit the model on entire training set
     clf_full = LogisticRegression(solver="lbfgs").fit(X, y)
