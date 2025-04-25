@@ -40,7 +40,7 @@ def experiment_unbalanced_size(
     results = run_cv(model, X, y, metrics, n_splits=5, stratified=True)
 
     # Simulate a new dataset for generalization
-    X_gen, y_gen = simulate_dataset(1000, 0.1, -1, 1, 1, 1, seed=seed)
+    X_gen, y_gen = simulate_dataset(1000, 0.1, -1, 1, 1, 1, seed=seed * 100)
 
     # fit the model on entire training set
     clf_full = LogisticRegression(solver="lbfgs").fit(X, y)
@@ -60,3 +60,5 @@ def experiment_unbalanced_size(
             print(f"{result_type.capitalize()} metrics:")
             for name, value in result.items():
                 print(f"  {name}: {value:.4f}")
+
+    return results
