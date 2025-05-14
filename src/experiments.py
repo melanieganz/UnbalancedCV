@@ -5,7 +5,7 @@ from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
 
 
-def experiment_unbalanced_size(
+def experiment_simulation(
     pos_ratio: float = 0.1,
     n_samples: int = 1000,
     eval_metrics: list = ["accuracy", "auc"],
