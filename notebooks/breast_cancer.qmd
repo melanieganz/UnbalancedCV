@@ -1,0 +1,84 @@
+---
+title: "Investigating Cross-Validation AUC Metrics with Real Datasets"
+format:
+  html:
+    code-fold: true
+    toc: true
+    fig-width: 10
+    fig-height: 6
+jupyter: python3
+---
+
+## Introduction
+
+In this document, we extend our investigation of cross-validation ROC-AUC metrics from simulated data to real-world datasets. We focus on comparing two approaches to calculating AUC in cross-validation:
+
+1. **Pooled AUC**: Concatenate predictions from all folds, then calculate one AUC
+2. **Average AUC**: Calculate AUC for each fold, then average the results
+
+We'll use datasets from scikit-learn to examine how these metrics behave with real data and under different class balance conditions.
+
+## Setup
+
+First, we'll load our CV and metrics functions, along with necessary libraries:
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+
+
+# Import our custom functions
+from src.metrics import create_metrics
+from src.experiments import experiment_lung_cancer
+```
+
+```{python}
+# Create metrics dictionary
+metrics = create_metrics(["accuracy", "auc"])
+
+# repeat 2 times:
+
+results = []
+for seed in range(1, 1001):
+    result = experiment_lung_cancer(metrics, seed=seed, verbose=False)
+
+    # Flatten the nested dictionary structure
+    for key, metric in result.items():
+        flattened_result = {'type': key, **metric}
+        results.append(flattened_result)
+
+# Convert the flattened results into a DataFrame
+results_df = pd.DataFrame(results)
+
+# Visualization
+results_df.boxplot(column=['auc'], by='type', figsize=(10, 6))
+plt.title("Distribution of Results by Type")
+plt.suptitle("")  # Remove the default title
+plt.ylabel("Values")
+plt.show()
+
+# Print the mean by type
+mean_results = results_df.groupby('type')[['accuracy', 'auc']].mean()
+print(mean_results)
+```
+
+```{python}
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+
+# Perform a t-test to compare AUC between pooled and average
+# Filter the data for the two types
+pooled_auc = results_df[results_df['type'] == 'pooled']['auc']
+average_auc = results_df[results_df['type'] == 'average']['auc']
+
+# Combine the data into a single DataFrame for analysis
+comparison_df = results_df[results_df['type'].isin(['pooled', 'average'])]
+
+# Perform an ANOVA test using statsmodels
+model = ols('auc ~ C(type)', data=comparison_df).fit()
+
+# Print the ANOVA table
+print(model.summary())
+```
