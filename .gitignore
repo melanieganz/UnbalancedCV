@@ -2,3 +2,4 @@
 simulations_files/
 poetry.lock
 */*__pycache__/
+*/*.vdoc.*
