@@ -12,6 +12,10 @@ from sklearn.preprocessing import StandardScaler
 def experiment_simulation(
     pos_ratio: float = 0.1,
     n_samples: int = 1000,
+    mu0: float = -1,
+    sigma0: float = 1,
+    mu1: float = 1,
+    sigma1: float = 1,
     eval_metrics: list = ["accuracy", "auc"],
     seed: int = 123,
     verbose: bool = True,
@@ -22,7 +26,7 @@ def experiment_simulation(
     """
 
     # Simulate dataset
-    X, y = simulate_dataset(n_samples, pos_ratio, -1, 1, 1, 1, seed=seed)
+    X, y = simulate_dataset(n_samples, pos_ratio, mu0, sigma0, mu1, sigma1, seed=seed)
 
     if verbose:
         # plot the dataset
@@ -44,7 +48,7 @@ def experiment_simulation(
     results = run_cv(model, X, y, metrics, n_splits=5, stratified=True)
 
     # Simulate a new dataset for generalization
-    X_gen, y_gen = simulate_dataset(1000, 0.1, -1, 1, 1, 1, seed=seed * 100)
+    X_gen, y_gen = simulate_dataset(1000, 0.1, mu0, sigma0, mu1, sigma1, seed=seed * 100)
 
     # fit the model on entire training set
     clf_full = LogisticRegression(solver="lbfgs").fit(X, y)
