@@ -34,6 +34,7 @@ from src.metrics import create_metrics
 from src.experiments import experiment_lung_cancer
 ```
 
+We then define the metrics and run the experiemnt with a 20 times repeated 5-fold CV.
 ```{python}
 # Create metrics dictionary
 metrics = create_metrics(["accuracy", "auc"])
@@ -41,7 +42,7 @@ metrics = create_metrics(["accuracy", "auc"])
 # repeat 2 times:
 
 results = []
-for seed in range(1, 1001):
+for seed in range(1, 21):
     result = experiment_lung_cancer(metrics, seed=seed, verbose=False)
 
     # Flatten the nested dictionary structure
@@ -63,7 +64,7 @@ plt.show()
 mean_results = results_df.groupby('type')[['accuracy', 'auc']].mean()
 print(mean_results)
 ```
-
+Finally, we test for a statistical difference.
 ```{python}
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
