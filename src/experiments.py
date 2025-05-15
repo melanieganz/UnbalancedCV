@@ -45,7 +45,7 @@ def experiment_simulation(
     metrics = create_metrics(eval_metrics)
 
     # Run cross-validation
-    results = run_cv(model, X, y, metrics, n_splits=5, stratified=True)
+    results = run_cv(model, X, y, metrics, n_splits=5, stratified=True, random_state=seed)
 
     # Simulate a new dataset for generalization
     X_gen, y_gen = simulate_dataset(1000, 0.1, mu0, sigma0, mu1, sigma1, seed=seed * 100)
@@ -53,7 +53,7 @@ def experiment_simulation(
     # fit the model on entire training set
     clf_full = LogisticRegression(solver="lbfgs").fit(X, y)
 
-    # Predict and score on fresh data
+    # Predict and score on fresh ("generalization") data
     y_pred_gen = clf_full.predict(X_gen)
     y_proba_gen = clf_full.predict_proba(X_gen)[:, 1]
 
