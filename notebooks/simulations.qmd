@@ -128,10 +128,6 @@ plt.title("Distribution of Results by Type")
 plt.suptitle("")  # Remove the default title
 plt.ylabel("Values")
 plt.show()
-
-# Print the mean by type
-mean_results = results_df.groupby("type")[["accuracy", "auc"]].mean()
-print(mean_results)
 ```
 The results are:
 ```{python}
