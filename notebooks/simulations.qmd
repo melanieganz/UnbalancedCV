@@ -1,10 +1,19 @@
 ---
-title: "Simulations of Cross‑Validation and ROC‑AUC under Class Imbalance"
+title: "Cross-Validation Strategies for ROC-AUC Estimation under Class Imbalance"
 format:
   html:
     code-fold: true
 jupyter: python3
 ---
+
+We investigate two approaches for computing ROC-AUC in cross-validation settings: (1) fold-averaged AUC, where AUC is computed per fold and then averaged, and (2) pooled AUC, where predictions from all folds are concatenated before AUC computation. Through simulation studies on imbalanced binary classification tasks, we demonstrate that these approaches yield systematically different estimates with implications for model evaluation and selection. Our analysis follows three steps: (1) demonstrate the difference on single datasets, (2) establish statistical significance through 1,000 Monte Carlo replications, and (3) compare both strategies against true generalization performance.
+
+We compare the following startegies to cmpute the generalization AUC in a cross-validation setting:
+
+1. **Fold-averaged AUC**: $\text{AUC}_{\text{avg}} = \frac{1}{K} \sum_{k=1}^{K} \text{AUC}(\mathbf{y}^{(k)}, \hat{\mathbf{p}}^{(k)})$
+2. **Pooled AUC**: $\text{AUC}_{\text{pooled}} = \text{AUC}(\mathbf{y}_{\text{all}}, \hat{\mathbf{p}}_{\text{all}})$
+
+where $\mathbf{y}^{(k)}$ and $\hat{\mathbf{p}}^{(k)}$ are the true labels and predicted probabilities for fold $k$, and the subscript "all" denotes concatenation across all test folds.
 
 ## Setup
 
@@ -18,10 +27,13 @@ from src.cv import run_cv
 from src import simulations
 from src.metrics import create_metrics
 ```
+## Experimental Setup
+We simulate binary classification tasks using a mixture of two univariate Gaussians:
 
-# Simple Case
-## Simulate Data 
-We simulate a two class problem $y\in{0,1}$. Both classes are drawn from a Guassian with $\mu_0=-1$ and $\mu_2=1$. We compute the AUC of the ROC and the Accuracy, both pooled or averaged across folds. 
+- **Class 0** (negative): $X | Y=0 \sim \mathcal{N}(\mu_0, \sigma_0^2)$  
+- **Class 1** (positive): $X | Y=1 \sim \mathcal{N}(\mu_1, \sigma_1^2)$
+
+The class imbalance is controlled via the positive class ratio $\pi = P(Y=1)$.
 
 ```{python}
 n_samples = 500
@@ -32,7 +44,7 @@ mu1 = 1
 sigma1 = 1
 ```
 
-Let's look at some simulated data.
+This setup creates a moderately separable two-class problem with controlled class imbalance.
 ```{python}
 # simulate
 X, y = simulations.simulate_dataset(n_samples, pos_ratio, mu0, sigma0, mu1, sigma1, seed=1)
@@ -47,8 +59,12 @@ ax.hist(X[y == 1], bins=30, alpha=0.5, label="Class 1", color="orange")
 ax.legend()
 plt.show()
 ```
-## Cross-Validation
-Now let's actually do some cross-validation. We will use a simple logistic regression to begin with.
+We use 5-fold stratified cross-validation to ensure each fold maintains the original class distribution. For each fold, we:
+
+1. Train a logistic regression classifier on the training partition
+2. Generate predictions and probability estimates on the test partition
+3. Aggregate the predictions
+4. Compute fold-specific metrics (accuracy, AUC)
 
 ```{python}
 X, y = simulations.simulate_dataset(n_samples, pos_ratio, mu0, sigma0, mu1, sigma1, seed=1)
@@ -58,8 +74,7 @@ metrics = create_metrics(["accuracy", "auc"])
 results = run_cv(model, X, y, metrics, n_splits=5, stratified=True, random_state=1)
 ```
 
-## Generalization Error
-Since we simulate data, we can simulate a "true" test set to test the externalization set.
+Further, can simulate a "true" test set to test the test set to compute the generalization error.
 ```{python}
 X_gen, y_gen = simulations.simulate_dataset(1000, pos_ratio, mu0, sigma0, mu1, sigma1, seed=100)
 
@@ -77,15 +92,14 @@ for name, function in metrics.items():
     results["generalized"][name] = score
 ```
 
-## Results
 Let's look at the results:
 ```{python}
 results_df = pd.DataFrame(results)
 print(results_df)
 ```
 
-# Repeated Tests
-Now let's repreat this experiment 1000 for some formal statistical testing.
+## Statistical Analysis
+To get an idea about the statistics of this experiment, we repeat this experiment using a Monte Carlo simulation where run 1,000 independent replications. Each replication generates a new dataset with identical parameters but different random seeds.
 
 ```{python}
 results = []
@@ -119,7 +133,13 @@ plt.show()
 mean_results = results_df.groupby("type")[["accuracy", "auc"]].mean()
 print(mean_results)
 ```
-
+The results are:
+```{python}
+# Print the mean by type
+mean_results = results_df.groupby("type")[["accuracy", "auc"]].mean()
+print(mean_results)
+```
+Since we repeated this expiremnt a couple of times, we can run t-test to see whether there is a stistical difference between the pooled and average strategy to estimate the generalization error.
 ```{python}
 import statsmodels.api as sm
 from statsmodels.formula.api import ols
