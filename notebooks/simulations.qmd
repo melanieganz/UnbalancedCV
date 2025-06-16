@@ -22,7 +22,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LogisticRegression
 
-from src.experiments import experiment_simulation
 from src.cv import run_cv
 from src import simulations
 from src.metrics import create_metrics
