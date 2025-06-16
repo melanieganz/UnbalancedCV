@@ -104,16 +104,16 @@ To get an idea about the statistics of this experiment, we repeat this experimen
 ```{python}
 results = []
 for seed in range(1, 1001):
-    result = experiment_simulation(
-        pos_ratio=pos_ratio,
-        n_samples=n_samples,
-        mu0=mu0,
-        sigma0=sigma0,
-        mu1=mu1,
-        sigma1=sigma1,
-        seed=seed,
-        verbose=False,
-    )
+    # simulate new set of data
+    X, y = simulations.simulate_dataset(n_samples, pos_ratio, mu0, sigma0, mu1, sigma1, seed=seed)
+
+    # setup model
+    model = LogisticRegression()
+    metrics = create_metrics(["accuracy", "auc"])
+
+    # run cv
+    result = run_cv(model, X, y, metrics, n_splits=5, stratified=True, random_state=1)
+
     # Flatten the nested dictionary structure
     for key, metrics in result.items():
         flattened_result = {"type": key, **metrics}
