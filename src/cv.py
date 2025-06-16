@@ -29,7 +29,7 @@ def run_cv(
     y_true_all = []
     y_pred_all = []
     y_proba_all = []
-
+    nks = []  # number of samples in each fold
     for train_idx, test_idx in cv.split(X, y):
         X_tr, X_te = X[train_idx], X[test_idx]
         y_tr, y_te = y[train_idx], y[test_idx]
@@ -47,10 +47,16 @@ def run_cv(
             y_proba_all.extend(y_proba)
 
         # per‑fold metric values only (we'll average below)
+        nks.append(len(test_idx))
         fold_results.append({name: fn(y_te, y_pred, y_proba) for name, fn in metrics.items()})
 
-    # compute average across folds
-    average = {name: float(np.mean([fr[name] for fr in fold_results])) for name in metrics.keys()}
+    # compute weighted average across folds
+    average = {}
+    total_samples = np.sum(nks)
+
+    for name in metrics.keys():
+        # weighted average: sum of (value * number of samples in fold) / total number of samples
+        average[name] = np.sum([fr[name] * nk / total_samples for fr, nk in zip(fold_results, nks)])
 
     # compute pooled metrics
     y_true_all = np.array(y_true_all)

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Simulating Unbalaced Cross Validation</title>
+<title>Cross-Validation Strategies for ROC-AUC Estimation under Class Imbalance</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -108,7 +108,7 @@ window.Quarto = {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Simulating Unbalaced Cross Validation</h1>
+<h1 class="title">Cross-Validation Strategies for ROC-AUC Estimation under Class Imbalance</h1>
 </div>
 
 
@@ -125,220 +125,229 @@ window.Quarto = {
 </header>
 
 
-<section id="overview" class="level3">
-<h3 class="anchored" data-anchor-id="overview">Overview</h3>
-<p>Estimating the accuarcy, or other metrics, for classification tasks in cross-validation settings is a standard thing to do. However, there are multiple ways to do it, and especially in in unbalanced settings, it is probably not as straight forward. This documents first introduces the generalization error and how to compute it using cross-validation. Further, we will look at the unbalanced case and run simulations.</p>
-</section>
-<section id="theoretical-generalization-error" class="level3">
-<h3 class="anchored" data-anchor-id="theoretical-generalization-error">Theoretical Generalization Error</h3>
-<p>The generalization error of a learned model <span class="math inline">\(f_\theta\)</span> is the expected loss <span class="math inline">\(\ell(\cdot, \cdot)\)</span> over the entire, unseen, data distribution <span class="math inline">\(P(x, y)\)</span>:</p>
-<p><span class="math display">\[\begin{equation}
-\mathcal{E}_{\text{gen}} = \mathbb{E}_{(x, y) \sim P(x, y)} \left[ \ell(f_\theta(x), y) \right]
-\end{equation}\]</span></p>
-<p>However, <span class="math inline">\(P(x, y)\)</span> is obviously unknown, so we approximate the generalization error on hold-out data. If we have a large dataset, a simple hold-out set is sufficient. However, often we need to use approaches like Cross-Validation to get more robust estimates of the generalization error. Nevertheles, the underlying assumption is that the test data is drawn from our data generating distribution <span class="math inline">\(P(x, y)\)</span>. We will revisit this assumption later.</p>
-</section>
-<section id="k-fold-cross-validation" class="level3">
-<h3 class="anchored" data-anchor-id="k-fold-cross-validation">K-Fold Cross-Validation</h3>
-<p>The dataset is partitioned into <span class="math inline">\(K\)</span> disjoint subsets (folds). For each fold <span class="math inline">\(k \in \{1, \ldots, K\}\)</span>:</p>
-<p>We define:</p>
-<ul>
-<li><p><span class="math inline">\(\mathcal{D}_{\text{train}}^{(k)} = (x_i,y_i)_{i=1}^{n_{\text{train}}^{(k)}}\)</span>: the training set of size <span class="math inline">\(n_{\text{train}}^{(k)}\)</span> used to fit the model.</p></li>
-<li><p><span class="math inline">\(\mathcal{D}_{\text{val}}^{(k)} = (x_j, y_j)_{j=1}^{n_{\text{val}}^{(k)}}\)</span>: the validation set of size <span class="math inline">\(n_{\text{val}}^{(k)}\)</span> used to evaluate model performance.</p></li>
-</ul>
-<p>The empirical generalization error estimate is then computed as:</p>
-<p><span class="math display">\[\begin{align}
-
-\hat{\mathcal{E}}_{\text{gen}} &amp;= \sum_{k=1}^{K}\frac{n_{\text{val}}^{(k)}}{N} E_{val}^{k}  \\
-&amp;= \sum_{k=1}^{K}\frac{n_{\text{val}}^{(k)}}{N}  \frac{1}{n_{\text{val}}^{(k)}} \sum_{(x_i, y_i) \in \mathcal{D}^{(k)}_{\text{val}}}^{n_{\text{val}}^{(k)}}  \ell(f^{(k)}(x_i), y_i) \\
-&amp;= \frac{1}{N} \sum_{k=1}^{K} \sum_{(x_i, y_i) \in \mathcal{D}^{(k)}_{\text{val}}}^{n_{\text{val}}^{(k)}} \ell(f^{(k)}(x_i), y_i) \\
-&amp;= \frac{1}{N} \sum_{(x_i, y_i) \in \mathcal{D}_{val}}^N \ell(f^{(k)}(x_i), y_i)
-\end{align}\]</span></p>
-<p>with <span class="math inline">\(\mathcal{D}_{\text{val}} \in \{ \mathcal{D}_{\text{val}}^{(1)}, ..., \mathcal{D}_{\text{val}}^{(K)}  \}\)</span>. This shows that averaging the loss across tests sets and computing one overall loss is equivalent.</p>
-</section>
-<section id="the-unbalanced-case" class="level3">
-<h3 class="anchored" data-anchor-id="the-unbalanced-case">The unbalanced case</h3>
-<p>Now in the unbalanced case, the problem is not the question on how to compute the loss, but how the distribution is within the folds. The empircal generalization error assumes that <span class="math inline">\(\mathcal{D}_{\text{val}}^{(k)} \sim P(x,y)\)</span>, which is likely not true in the unbalanced case. A different stregy, such as K-Fold coss validation would be more appropriate, as this ensures that the distribution in each fold matches the distribution in the entire dataset.</p>
-</section>
-<section id="simulations" class="level2">
-<h2 class="anchored" data-anchor-id="simulations">Simulations</h2>
-<p>To show this, we can run some simulations.</p>
-<div id="cefb79ae" class="cell" data-execution_count="1">
+<p>We investigate two approaches for computing ROC-AUC in cross-validation settings: (1) fold-averaged AUC, where AUC is computed per fold and then averaged, and (2) pooled AUC, where predictions from all folds are concatenated before AUC computation. Through simulation studies on imbalanced binary classification tasks, we demonstrate that these approaches yield systematically different estimates with implications for model evaluation and selection. Our analysis follows three steps: (1) demonstrate the difference on single datasets, (2) establish statistical significance through 1,000 Monte Carlo replications, and (3) compare both strategies against true generalization performance.</p>
+<p>We compare the following startegies to cmpute the generalization AUC in a cross-validation setting:</p>
+<ol type="1">
+<li><strong>Fold-averaged AUC</strong>: <span class="math inline">\(\text{AUC}_{\text{avg}} = \frac{1}{K} \sum_{k=1}^{K} \text{AUC}(\mathbf{y}^{(k)}, \hat{\mathbf{p}}^{(k)})\)</span></li>
+<li><strong>Pooled AUC</strong>: <span class="math inline">\(\text{AUC}_{\text{pooled}} = \text{AUC}(\mathbf{y}_{\text{all}}, \hat{\mathbf{p}}_{\text{all}})\)</span></li>
+</ol>
+<p>where <span class="math inline">\(\mathbf{y}^{(k)}\)</span> and <span class="math inline">\(\hat{\mathbf{p}}^{(k)}\)</span> are the true labels and predicted probabilities for fold <span class="math inline">\(k\)</span>, and the subscript “all” denotes concatenation across all test folds.</p>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div id="d127fef3" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LogisticRegression</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> KFold, StratifiedKFold</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn <span class="im">import</span> metrics</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Set seed for reproducibility</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> src.experiments <span class="im">import</span> experiment_simulation</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> src.cv <span class="im">import</span> run_cv</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> src <span class="im">import</span> simulations</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> src.metrics <span class="im">import</span> create_metrics</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<p>First, we generate two classes and define the imbalance. Here, we set 20% of the samples to be positive and 80% to be negative. We draw 1000 samples from a binomial distribution: <span class="math inline">\(y \sim \text{Binomial}(n=1, p=0.2)\)</span>, where <span class="math inline">\(y = 1\)</span> represents the positive class and <span class="math inline">\(y = 0\)</span> the negative class</p>
-<div id="45e3585e" class="cell" data-execution_count="2">
+</section>
+<section id="experimental-setup" class="level2">
+<h2 class="anchored" data-anchor-id="experimental-setup">Experimental Setup</h2>
+<p>We simulate binary classification tasks using a mixture of two univariate Gaussians:</p>
+<ul>
+<li><strong>Class 0</strong> (negative): <span class="math inline">\(X | Y=0 \sim \mathcal{N}(\mu_0, \sigma_0^2)\)</span><br>
+</li>
+<li><strong>Class 1</strong> (positive): <span class="math inline">\(X | Y=1 \sim \mathcal{N}(\mu_1, \sigma_1^2)\)</span></li>
+</ul>
+<p>The class imbalance is controlled via the positive class ratio <span class="math inline">\(\pi = P(Y=1)\)</span>.</p>
+<div id="39b90b3a" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Parameters</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>n_samples <span class="op">=</span> <span class="dv">1000</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>pos_ratio <span class="op">=</span> <span class="fl">0.1</span>  <span class="co"># class imbalance: 20% positives</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample class labels: y ~ Bernoulli(pos_ratio)</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> np.random.binomial(<span class="dv">1</span>, pos_ratio, size<span class="op">=</span>n_samples)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>n_samples <span class="op">=</span> <span class="dv">500</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>pos_ratio <span class="op">=</span> <span class="fl">0.1</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>mu0 <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>sigma0 <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>mu1 <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>sigma1 <span class="op">=</span> <span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<p>We further draw 1000 samples from normal distributions, where <span class="math inline">\(x_1 \sim \mathcal{N}(\mu_1, 1)\)</span> with <span class="math inline">\(\mu_1 = -1\)</span>, and <span class="math inline">\(x_2 \sim \mathcal{N}(\mu_2, 1)\)</span> with <span class="math inline">\(\mu_2 = 1\)</span>, both having unit variance.</p>
-<div id="cb2e53ba" class="cell" data-execution_count="3">
+<p>This setup creates a moderately separable two-class problem with controlled class imbalance.</p>
+<div id="b2d64a48" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define class-conditional distributions</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>mu_0, sigma_0 <span class="op">=</span> <span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>mu_1, sigma_1 <span class="op">=</span> <span class="dv">1</span>, <span class="dv">1</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample x ~ P(x | y)</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.where(</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    y <span class="op">==</span> <span class="dv">0</span>,</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    np.random.normal(mu_0, sigma_0, size<span class="op">=</span>n_samples),</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    np.random.normal(mu_1, sigma_1, size<span class="op">=</span>n_samples)</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Reshape x for sklearn</span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> x.reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co"># visualize data</span></span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>plt.hist(x[y <span class="op">==</span> <span class="dv">0</span>], bins<span class="op">=</span><span class="dv">30</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">"y = 0"</span>)</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>plt.hist(x[y <span class="op">==</span> <span class="dv">1</span>], bins<span class="op">=</span><span class="dv">30</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">"y = 1"</span>)</span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"x"</span>)</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Count"</span>)</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Class-conditional distributions of x"</span>)</span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># simulate</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> simulations.simulate_dataset(n_samples, pos_ratio, mu0, sigma0, mu1, sigma1, seed<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># plot the dataset</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="ss">f"Simulated dataset (pos_ratio=</span><span class="sc">{</span>pos_ratio<span class="sc">}</span><span class="ss">, n_samples=</span><span class="sc">{</span>n_samples<span class="sc">}</span><span class="ss">)"</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"Feature value"</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"Count"</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>ax.hist(X[y <span class="op">==</span> <span class="dv">0</span>], bins<span class="op">=</span><span class="dv">30</span>, alpha<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="st">"Class 0"</span>, color<span class="op">=</span><span class="st">"blue"</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>ax.hist(X[y <span class="op">==</span> <span class="dv">1</span>], bins<span class="op">=</span><span class="dv">30</span>, alpha<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="st">"Class 1"</span>, color<span class="op">=</span><span class="st">"orange"</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="simulations_files/figure-html/cell-4-output-1.png" width="587" height="449" class="figure-img"></p>
+<p><img src="simulations_files/figure-html/cell-4-output-1.png" width="585" height="449" class="figure-img"></p>
 </figure>
 </div>
 </div>
 </div>
-<p>We use a simple logistic regression model with <strong>accuracy</strong> as the evaluation metric:</p>
-<p><span class="math display">\[
-\text{Accuracy} = \frac{1}{n} \sum_{i=1}^n \mathbb{I}\left[ \hat{y}_i = y_i \right]
-\]</span></p>
-<p>This metric is used both when computing the final loss on the entire hold-out sets and when averaging across folds in the 5-fold cross-validation procedure.</p>
-<div id="558f8412" class="cell" data-execution_count="4">
+<p>We use 5-fold stratified cross-validation to ensure each fold maintains the original class distribution. For each fold, we:</p>
+<ol type="1">
+<li>Train a logistic regression classifier on the training partition</li>
+<li>Generate predictions and probability estimates on the test partition</li>
+<li>Aggregate the predictions</li>
+<li>Compute fold-specific metrics (accuracy, AUC)</li>
+</ol>
+<div id="9974041b" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># %% function to compute the accuracy</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> calculate_accuracy(predictions, targets):</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">    Calculates the accuracy of the model's predictions.</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">        predictions (torch.Tensor): Model predictions (e.g., logits or probabilities)</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">        targets (torch.Tensor): Ground truth labels</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co">        float: Accuracy value between 0 and 1</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Check where predictions match targets</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    correct_predictions <span class="op">=</span> <span class="bu">sum</span>(predictions <span class="op">==</span> targets)</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Calculate accuracy</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    accuracy <span class="op">=</span> correct_predictions <span class="op">/</span> <span class="bu">len</span>(targets)</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> accuracy</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> simulations.simulate_dataset(n_samples, pos_ratio, mu0, sigma0, mu1, sigma1, seed<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> LogisticRegression()</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>metrics <span class="op">=</span> create_metrics([<span class="st">"accuracy"</span>, <span class="st">"auc"</span>])</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> run_cv(model, X, y, metrics, n_splits<span class="op">=</span><span class="dv">5</span>, stratified<span class="op">=</span><span class="va">True</span>, random_state<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="afd4eae7" class="cell" data-execution_count="5">
+<p>Further, can simulate a “true” test set to test the test set to compute the generalization error.</p>
+<div id="1f364ea7" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>clf <span class="op">=</span> LogisticRegression(solver<span class="op">=</span><span class="st">"lbfgs"</span>)</span>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>X_gen, y_gen <span class="op">=</span> simulations.simulate_dataset(<span class="dv">1000</span>, pos_ratio, mu0, sigma0, mu1, sigma1, seed<span class="op">=</span><span class="dv">100</span>)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>cv <span class="op">=</span> KFold(n_splits<span class="op">=</span><span class="dv">5</span>)</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Iterate through cv and save predictions</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>predictions <span class="op">=</span> []</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>predictions_proba <span class="op">=</span> []</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>true_labels <span class="op">=</span> []</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>cv_error <span class="op">=</span> []</span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>cv_auc <span class="op">=</span> []</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>fold<span class="op">=</span><span class="dv">0</span></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> train_idx, test_idx <span class="kw">in</span> cv.split(X, y):</span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    X_train, X_test <span class="op">=</span> X[train_idx], X[test_idx]</span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    y_train, y_test <span class="op">=</span> y[train_idx], y[test_idx]</span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Count number of class 1 in training and test sets</span></span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    num_class_1_train <span class="op">=</span> np.<span class="bu">sum</span>(y_train <span class="op">==</span> <span class="dv">1</span>)</span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    num_class_1_test <span class="op">=</span> np.<span class="bu">sum</span>(y_test <span class="op">==</span> <span class="dv">1</span>)</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"Fold </span><span class="sc">{</span>fold<span class="sc">}</span><span class="ss">: Class 1 in train = </span><span class="sc">{</span>num_class_1_train<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(y_train)<span class="sc">}</span><span class="ss">, Class 1 in test = </span><span class="sc">{</span>num_class_1_test<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(y_test)<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    fold<span class="op">+=</span><span class="dv">1</span></span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># fit the model</span></span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    clf.fit(X_train, y_train)</span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    y_pred <span class="op">=</span> clf.predict(X_test)</span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    y_pred_proba <span class="op">=</span> clf.predict_proba(X_test)[:,<span class="dv">1</span>]</span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    predictions.extend(y_pred)</span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    predictions_proba.extend(y_pred_proba)</span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    true_labels.extend(y_test)</span>
-<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    <span class="co"># compute the loss per cv</span></span>
-<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    fold_error <span class="op">=</span> calculate_accuracy(y_pred, y_test)</span>
-<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    cv_error.append(fold_error)</span>
-<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="co"># auc</span></span>
-<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>    fpr, tpr, thresholds <span class="op">=</span> metrics.roc_curve(y_test, y_pred_proba)</span>
-<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>    auc <span class="op">=</span> metrics.auc(fpr, tpr)</span>
-<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>    cv_auc.append(auc)</span>
-<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>global_accuracy <span class="op">=</span> calculate_accuracy(np.array(predictions), np.array(true_labels))</span>
-<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Global Accuracy: </span><span class="sc">{</span>global_accuracy<span class="sc">:.5f}</span><span class="ss">"</span>)</span>
-<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute local loss (mean of cv_error)</span></span>
-<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>local_accuracy <span class="op">=</span> np.mean(cv_error)</span>
-<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Mean Accuracy across folds: </span><span class="sc">{</span>local_accuracy<span class="sc">:.5f}</span><span class="ss">"</span>)</span>
-<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a><span class="co"># compute AUC</span></span>
-<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>clobal_fpr, global_tpr, thresholds <span class="op">=</span> metrics.roc_curve(np.array(true_labels), np.array(predictions_proba))</span>
-<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>global_auc <span class="op">=</span> metrics.auc(clobal_fpr, global_tpr)</span>
-<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Global AUC: </span><span class="sc">{</span>global_auc<span class="sc">:.5f}</span><span class="ss">"</span>)</span>
-<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a>local_auc <span class="op">=</span> np.mean(cv_auc)</span>
-<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Mean AUC across folds: </span><span class="sc">{</span>local_auc<span class="sc">:.5f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># fit the model on the full training dataset</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>model.fit(X, y)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Predict and score on fresh ("generalization") data</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>y_pred_gen <span class="op">=</span> model.predict(X_gen)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>y_proba_gen <span class="op">=</span> model.predict_proba(X_gen)[:, <span class="dv">1</span>]</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co"># add generalization to the results</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>results[<span class="st">"generalized"</span>] <span class="op">=</span> {}</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, function <span class="kw">in</span> metrics.items():</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    score <span class="op">=</span> function(y_gen, y_pred_gen, y_proba_gen)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    results[<span class="st">"generalized"</span>][name] <span class="op">=</span> score</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-stdout">
-<pre><code>Fold 0: Class 1 in train = 81 / 800, Class 1 in test = 19 / 200
-Fold 1: Class 1 in train = 81 / 800, Class 1 in test = 19 / 200
-Fold 2: Class 1 in train = 70 / 800, Class 1 in test = 30 / 200
-Fold 3: Class 1 in train = 85 / 800, Class 1 in test = 15 / 200
-Fold 4: Class 1 in train = 83 / 800, Class 1 in test = 17 / 200
-Global Accuracy: 0.94000
-Mean Accuracy across folds: 0.94000
-Global AUC: 0.92953
-Mean AUC across folds: 0.92856</code></pre>
 </div>
-</div>
-<p>As we can see, both results are exactly the same, so either way to compute the accuracy yields the same result.</p>
-<p>Since we have full control over the data generation and we know <span class="math inline">\(P(x,y)\)</span>, we can also generate new data and get a “true” estimate of the generaration error.</p>
-<div id="a6484551" class="cell" data-execution_count="6">
+<p>Let’s look at the results:</p>
+<div id="e87454a5" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>y_val <span class="op">=</span> np.random.binomial(<span class="dv">1</span>, pos_ratio, size<span class="op">=</span>n_samples)</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>x_val <span class="op">=</span> np.where(</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    y_val <span class="op">==</span> <span class="dv">0</span>,</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    np.random.normal(mu_0, sigma_0, size<span class="op">=</span>n_samples),</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    np.random.normal(mu_1, sigma_1, size<span class="op">=</span>n_samples)</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>x_val <span class="op">=</span> x_val.reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>y_pred_val <span class="op">=</span> clf.predict(x_val)</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>auc_val <span class="op">=</span> calculate_accuracy(np.array(y_pred_val), np.array(y_val))</span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Simulated accuracy: </span><span class="sc">{</span>auc_val<span class="sc">:.5f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>results_df <span class="op">=</span> pd.DataFrame(results)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(results_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>Simulated accuracy: 0.94200</code></pre>
+<pre><code>           average    pooled  generalized
+accuracy  0.938000  0.938000     0.944000
+auc       0.940637  0.934793     0.931445</code></pre>
+</div>
+</div>
+</section>
+<section id="statistical-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="statistical-analysis">Statistical Analysis</h2>
+<p>To get an idea about the statistics of this experiment, we repeat this experiment using a Monte Carlo simulation where run 1,000 independent replications. Each replication generates a new dataset with identical parameters but different random seeds.</p>
+<div id="1cc89b49" class="cell" data-execution_count="7">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> []</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> seed <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">1001</span>):</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> experiment_simulation(</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        pos_ratio<span class="op">=</span>pos_ratio,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        n_samples<span class="op">=</span>n_samples,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        mu0<span class="op">=</span>mu0,</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        sigma0<span class="op">=</span>sigma0,</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        mu1<span class="op">=</span>mu1,</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        sigma1<span class="op">=</span>sigma1,</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        seed<span class="op">=</span>seed,</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        verbose<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Flatten the nested dictionary structure</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> key, metrics <span class="kw">in</span> result.items():</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        flattened_result <span class="op">=</span> {<span class="st">"type"</span>: key, <span class="op">**</span>metrics}</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        results.append(flattened_result)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert the flattened results into a DataFrame</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>results_df <span class="op">=</span> pd.DataFrame(results)</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Visualization</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>results_df.boxplot(column<span class="op">=</span>[<span class="st">"auc"</span>], by<span class="op">=</span><span class="st">"type"</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">6</span>))</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Distribution of Results by Type"</span>)</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">""</span>)  <span class="co"># Remove the default title</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Values"</span>)</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="simulations_files/figure-html/cell-8-output-1.png" width="845" height="512" class="figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The results are:</p>
+<div id="4e50be21" class="cell" data-execution_count="8">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Print the mean by type</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>mean_results <span class="op">=</span> results_df.groupby(<span class="st">"type"</span>)[[<span class="st">"accuracy"</span>, <span class="st">"auc"</span>]].mean()</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(mean_results)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>             accuracy       auc
+type                           
+average      0.929286  0.920827
+generalized  0.929309  0.921213
+pooled       0.929286  0.917836</code></pre>
+</div>
+</div>
+<p>Since we repeated this expiremnt a couple of times, we can run t-test to see whether there is a stistical difference between the pooled and average strategy to estimate the generalization error.</p>
+<div id="bbf4be6e" class="cell" data-execution_count="9">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsmodels.formula.api <span class="im">import</span> ols</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Perform a t-test to compare AUC between pooled and average</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Filter the data for the two types</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>pooled_auc <span class="op">=</span> results_df[results_df[<span class="st">"type"</span>] <span class="op">==</span> <span class="st">"pooled"</span>][<span class="st">"auc"</span>]</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>average_auc <span class="op">=</span> results_df[results_df[<span class="st">"type"</span>] <span class="op">==</span> <span class="st">"average"</span>][<span class="st">"auc"</span>]</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine the data into a single DataFrame for analysis</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>comparison_df <span class="op">=</span> results_df[results_df[<span class="st">"type"</span>].isin([<span class="st">"pooled"</span>, <span class="st">"average"</span>])]</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Perform an ANOVA test using statsmodels</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> ols(<span class="st">"auc ~ C(type)"</span>, data<span class="op">=</span>comparison_df).fit()</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Print the ANOVA table</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model.summary())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                    auc   R-squared:                       0.005
+Model:                            OLS   Adj. R-squared:                  0.005
+Method:                 Least Squares   F-statistic:                     10.85
+Date:                Mon, 16 Jun 2025   Prob (F-statistic):            0.00101
+Time:                        14:20:17   Log-Likelihood:                 4957.0
+No. Observations:                2000   AIC:                            -9910.
+Df Residuals:                    1998   BIC:                            -9899.
+Df Model:                           1                                         
+Covariance Type:            nonrobust                                         
+=====================================================================================
+                        coef    std err          t      P&gt;|t|      [0.025      0.975]
+-------------------------------------------------------------------------------------
+Intercept             0.9208      0.001   1434.123      0.000       0.920       0.922
+C(type)[T.pooled]    -0.0030      0.001     -3.294      0.001      -0.005      -0.001
+==============================================================================
+Omnibus:                       42.830   Durbin-Watson:                   0.999
+Prob(Omnibus):                  0.000   Jarque-Bera (JB):               45.052
+Skew:                          -0.362   Prob(JB):                     1.65e-10
+Kurtosis:                       3.125   Cond. No.                         2.62
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.</code></pre>
 </div>
 </div>
 </section>
