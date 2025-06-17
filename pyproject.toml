@@ -28,9 +28,6 @@ flake8 = "^6.1.0"
 line-length = 120
 target-version = ["py310"]
 
-[ool.flake8]
-max-line-length = 120
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
