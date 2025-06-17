@@ -25,9 +25,7 @@ def create_metrics(metric_names: list[str]) -> dict[str, callable]:
     return metrics
 
 
-def accuracy(
-    y_true: np.ndarray, y_pred: np.ndarray, y_proba: np.ndarray | None = None
-) -> float:
+def accuracy(y_true: np.ndarray, y_pred: np.ndarray, y_proba: np.ndarray | None = None) -> float:
     """
     Fraction of exact matches.
     """

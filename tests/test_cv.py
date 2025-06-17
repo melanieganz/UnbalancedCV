@@ -16,12 +16,7 @@ class SimpleModel:
         return np.array([self.mapping.get(tuple(x), 0) for x in X], dtype=int)
 
     def predict_proba(self, X):
-        return np.array(
-            [
-                [1 - self.mapping.get(tuple(x), 0), self.mapping.get(tuple(x), 0)]
-                for x in X
-            ]
-        )
+        return np.array([[1 - self.mapping.get(tuple(x), 0), self.mapping.get(tuple(x), 0)] for x in X])
 
 
 def test_run_cv_perfect_classifier():
