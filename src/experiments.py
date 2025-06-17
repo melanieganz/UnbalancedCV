@@ -6,7 +6,9 @@ from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import StandardScaler
 
 
-def experiment_lung_cancer(metrics: list = ["accuracy", "auc"], seed: int = 123, verbose: bool = True) -> None:
+def experiment_lung_cancer(
+    metrics: list = ["accuracy", "auc"], seed: int = 123, verbose: bool = True
+) -> None:
     """
     Compare the effect of class imbalance on model performance.
     Use a simple logistic regression model and evaluate accuracy and AUC.
@@ -20,7 +22,13 @@ def experiment_lung_cancer(metrics: list = ["accuracy", "auc"], seed: int = 123,
 
     # Run cross-validation with original balanced dataset
     results = run_cv(
-        LogisticRegression(max_iter=1000), X_scaled, y, metrics, n_splits=5, stratified=True, random_state=seed
+        LogisticRegression(max_iter=1000),
+        X_scaled,
+        y,
+        metrics,
+        n_splits=5,
+        stratified=True,
+        random_state=seed,
     )
 
     # print

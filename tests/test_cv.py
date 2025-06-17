@@ -16,7 +16,12 @@ class SimpleModel:
         return np.array([self.mapping.get(tuple(x), 0) for x in X], dtype=int)
 
     def predict_proba(self, X):
-        return np.array([[1 - self.mapping.get(tuple(x), 0), self.mapping.get(tuple(x), 0)] for x in X])
+        return np.array(
+            [
+                [1 - self.mapping.get(tuple(x), 0), self.mapping.get(tuple(x), 0)]
+                for x in X
+            ]
+        )
 
 
 def test_run_cv_perfect_classifier():
@@ -27,7 +32,15 @@ def test_run_cv_perfect_classifier():
     metrics = {"accuracy": accuracy, "auc": auc}
     model = SimpleModel()
 
-    result = run_cv(model=model, X=X, y=y, metrics=metrics, n_splits=2, stratified=True, random_state=0)
+    result = run_cv(
+        model=model,
+        X=X,
+        y=y,
+        metrics=metrics,
+        n_splits=2,
+        stratified=True,
+        random_state=0,
+    )
 
     avg = result["average"]
     pooled = result["pooled"]
@@ -49,8 +62,24 @@ def test_run_cv_stratification_effect():
     metrics = {"accuracy": accuracy, "auc": auc}
     model = SimpleModel()
 
-    non_strat_res = run_cv(model=model, X=X, y=y, metrics=metrics, n_splits=5, stratified=False, random_state=0)
-    strat_res = run_cv(model=model, X=X, y=y, metrics=metrics, n_splits=5, stratified=True, random_state=0)
+    non_strat_res = run_cv(
+        model=model,
+        X=X,
+        y=y,
+        metrics=metrics,
+        n_splits=5,
+        stratified=False,
+        random_state=0,
+    )
+    strat_res = run_cv(
+        model=model,
+        X=X,
+        y=y,
+        metrics=metrics,
+        n_splits=5,
+        stratified=True,
+        random_state=0,
+    )
 
     avg_non = non_strat_res["average"]
     pooled_non = non_strat_res["pooled"]
