@@ -1,7 +1,6 @@
 .venv/
-simulations_files/
 poetry.lock
 */*__pycache__/
 */*.vdoc.*
-*/*_files
 */*.html
+/data

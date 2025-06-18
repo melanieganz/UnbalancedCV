@@ -1,7 +1,7 @@
 ---
 title: "Cross-Validation Strategies for ROC-AUC Estimation under Class Imbalance"
 format:
-  html:
+  gfm:
     code-fold: true
 jupyter: python3
 ---
