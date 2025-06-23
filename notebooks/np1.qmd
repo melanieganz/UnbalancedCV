@@ -23,7 +23,7 @@ from src.metrics import create_metrics
 from src.cv import run_cv
 ```
 
-# Load the dataset
+## Load and prepare the dataset
 ```{python}
 # Load the dataset
 data_path = Path("../data/np1_fs_mdd_episode.csv")
@@ -34,21 +34,19 @@ print(f"Columns: {df.columns.tolist()}")
 
 # drop diagnosis:
 df = df.drop(columns=["diagnosis"])
-```
 
-```{python}
+# convert to numpy arrays
 X = df.drop(columns=["mdd_episode"]).to_numpy()
 y = df["mdd_episode"].to_numpy()
 
 # we need to convert the target to a binary classification task
 y_binary = (y == "Recurrent").astype(int)
-
 # Check class balance
 print(
     f"Class distribution:\n{sum(y_binary)} positive, {len(y_binary) - sum(y_binary)} negative, ratio: {sum(y_binary) / len(y_binary):.2f}")
 ```
 
-# Run cross-validation
+## Run cross-validation
 ```{python}     
 model = LogisticRegression(max_iter=10000)
 metrics = create_metrics(["accuracy", "auc"])
