@@ -30,7 +30,6 @@ data_path = Path("../data/np1_fs_mdd_episode.csv")
 df = pd.read_csv(data_path)
 
 print(f"Dataset shape: {df.shape}")
-print(f"Columns: {df.columns.tolist()}")
 
 # drop diagnosis:
 df = df.drop(columns=["diagnosis"])

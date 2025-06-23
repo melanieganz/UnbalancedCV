@@ -31,7 +31,6 @@ data_path = Path("../data/oasis3_fs_mci.tsv")
 df = pd.read_csv(data_path, sep="\t")
 
 print(f"Dataset shape: {df.shape}")
-print(f"Columns: {df.columns.tolist()}")
 
 # drop rows that have empty cells / NAs
 df = df.dropna(axis=0, how="any")
