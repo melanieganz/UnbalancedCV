@@ -9,7 +9,7 @@ format:
 jupyter: python3
 ---
 # Introduction
-In this example, we look at the Neuropharm 1 data colletced at the NRU. We have cortical features such as thickness, area, and curvature for 79 subjects with depression. Some of them only had one episode of depression, others are relaåpsing. The classification task is to predict remittence.
+In this example, we look at the Oasis3 data. We have cortical volume for various subjects and sessions that are cognitively normal or impaired. The classification task is to predict whether the subject is cogntiviely normal or not, based on cortical features.
 
 ## Setup
 ```{python}
