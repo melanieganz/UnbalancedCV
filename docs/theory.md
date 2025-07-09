@@ -67,7 +67,7 @@ $$\mathcal{E}^{gen}_{average} =
 $$\mathcal{E}^{gen}_{pooled} = \frac{1}{N} \sum_{i=1}^{N} \ell(y_{i}, f_\theta(x_{i})) =
 \frac{1}{N} \sum_{i=1}^{N} \mathbb{1}(y_{i}, f_\theta(x_{i}))$$.
 
-In this case, the averaged generalization error is equal to the pooled generalization error, since we are summing over all samples in the end.
+In this case, the averaged generalization error is equal to the pooled generalization error, since we are evaluating the idicator funtion for each individual sample and then summing over all samples in the end.
 
 
 ## Code Examples 
