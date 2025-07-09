@@ -8,11 +8,11 @@ Authors: Ruben Doerfel, Franziska Meier and Melanie Ganz
 This repository is a playground for testing the effect of summarizing cross-validation results in the unbalanced data setting. 
 
 ## Intro
-This is a playground to test out the statistical properties of different ways of summarizing performance metrics when using cross-validation. The premise is to compare the summarizing performance metrics - accuracy, sensitivity, specificity, etc. as well as AUC, AUPRC - in the case where predictions are summarized in performance metrics per single test fold vs. across all test folds.
+This is a playground to test out the statistical properties of different ways of summarizing performance metrics when using cross-validation. The premise is to compare the summarizing performance metrics - accuracy, sensitivity, specificity, etc. as well as AUCROC, AUPRC - in the case where predictions are summarized in performance metrics per single test fold vs. across all test folds.
 
 ## Problem Definition
 
-We have a dataset $D = {x, y}_{n=1}^N$,  where  is $x_n$ is in $R^D$ and $y_n$ is in ${c_0, c_1}$ - a binary classification vector. $D$ is unbalanced, so it contains many more $x_n$ with label $c_0$ compared to label $c_1$ (or vice versa). 
+We have a dataset $D = {x, y}_{i=1}^N$,  where  is $x_i$ is in $R^D$ and $y_i$ is in ${c_0, c_1}$ - a binary classification vector. $D$ is unbalanced, so it contains many more $x_i$ with label $c_0$ compared to label $c_1$ (or vice versa). 
 
 The question we pose is: How do we correctly calculate performance metrics that summatrize the results of the k-fold cross validation on such datasets? 
 
