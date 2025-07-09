@@ -36,7 +36,7 @@ average of the test errors in each hold-out set $\mathcal{D}^{test}_k$:
 
 $\mathcal{E}^{gen} \approx \mathcal{E}^{gen}_{average} = \sum_{k=1}^{K} \frac{N_k}{N}\mathcal{E}^{test}_k$  with $N_k$ being the number of test samples per fold, and $N$ the
 total number of samples, and $
-\mathcal{E}^{test} = \frac{1}{N_k} \sum_{i}^{N_k} \ell(y_{k,i}, f_\theta(x_{k,i}))$
+\mathcal{E}^{test} = \frac{1}{N_k} \sum_{j=1}^{N_k} \ell(y_{k,j}, f_\theta(x_{k,j}))$ where $j$ indexes into the $k$-th fold.
 
 ## Approach 2: Pooled Generalization Error
 
