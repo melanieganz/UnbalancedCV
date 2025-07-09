@@ -15,57 +15,56 @@ conda install pytorch
 pip install matplotlib
 ```
 now run the jupyter notebook from inside the repo dir
+
 ```
 jupyter notebook
 ```
-
 ## Intro
 This is a playground to test out the statistical properties of different ways of summarizing cross-validation results in the unbalanced data setting. The premise is to compare the summarizing metrics - accuracy, sensitivity, specificity, etc. - as well as average metrics - AUC, AUPRC - in the case where predictions are summarizes in scores per test fold vs. across all test folds.
 
 ## Problem Definition
 
-We have a dataset D = {x, y}_{n=1}^N, where  is x_n is in R^D and y_n is in {c_0, c_1} - a binary classification vector. D is unbalanced, so it contains many more x_n with label c_0 compared to label c_1 (or vice versa). 
+We have a dataset $D = {x, y}_{n=1}^N$,  where  is $x_n$ is in $R^D$ and $y_n$ is in ${c_0, c_1}$ - a binary classification vector. $D$ is unbalanced, so it contains many more $x_n$ with label $c_0$ compared to label $c_1$ (or vice versa). 
 
-The question we pose is: How do we correctly do k-fold cross validation on such datasets? 
+The question we pose is: How do we correctly calculate metrics that evaluate k-fold cross validation on such datasets? 
 
-### Approach 1 : K-fold cross validation with k test sets and average the k accuracies from each test set
+### Approach 1 : $k$-fold cross validation with k test sets and average the k performance metrics from each test set
 
-Let's say we want to do k-fold cross-validation. 
+Let's say we want to do $k$-fold cross-validation. 
 
-1. We split D into k non-overlapping data sets.
-2. The k sets are then divided further into D_train (k-1 of the sets), and D_test (the kth set).
-3. We train a classifier on D_train.
-4. We evaluate the trained classifer on D_test and record acc_k - which denotes the accuracy of the kth fold.
-5. We go back to step 1 and repeat k-1 more times and end therefor up with k estimates of the accuracy, each on a different D_test.
+1. We split $D$ into $k$ non-overlapping data sets.
+2. The $k$ sets are then divided further into $D_{train}$ ($k$-1 of the sets), and $D_test$ (the $k$ th set).
+3. We train a classifier on $D_{train}$.
+4. We evaluate the trained classifer on $D_{test}$ and record the performance metric $perf_k$ - which denotes the performance metric of the $k$ th fold.
+5. We go back to step 1 and repeat $k$-1 more times and end therefor up with $k$ estimates of the performance metric, each on a different $D_{test}$.
 
-After this finishes we have k accuracies acc_k. We typically report the final acc_cv = mean([acc_1, acc_2, ..., acc_k])
+After this finishes we have $k$ performance metrics $perf_k$. We typically report the final $perf_cv = mean([perf_1, perf_2, ..., perf_k])$.
 
 Advantages of this approach:
-* We can not only calculate a mean but also a standard deviation sof accuracies across the 10 folds. The properties of this standard deviation are though not clear.
+* We can not only calculate a mean, but also a standard deviations of performance metrics across the 10 folds. The properties of the standard deviation are though not clear.
 
 Drawbacks of this approach: 
-* In unbalanced datasets this can lead to the k folds not being balanced in the same way, even if we try to sample the k-folds in a stratified manner (see e.g. [here](https://scikit-learn.org/dev/modules/generated/sklearn.model_selection.StratifiedKFold.html))
+* In unbalanced datasets this can lead to the $k$ folds not being balanced in the same way, even if we try to sample the $k$-folds in a stratified manner (see e.g. [here](https://scikit-learn.org/dev/modules/generated/sklearn.model_selection.StratifiedKFold.html))
 * In can also lead to some test sets having very "easy" and clean classification points in it whereas others are hard.
-   The estimation of the acc_k is based on only n/k samples instead of n, yielding a worse statistical estimate of acc_k.
+   The estimation of the performance metric $perf_k$ is based on only $n/k$ samples instead of $n$, yielding a worse statistical estimate of $perf_k$.
 
-### Approach 2 : K-fold cross validation with k test sets and calculate only a single accuracy across the predictiosn of all k test sets
+### Approach 2 : $k$-fold cross validation with $k$ test sets and calculate only a single performance metric across the predictions of all $k$ test sets
 
-Let's say we want to do k-fold cross-validation. 
+Let's say we want to do $k$-fold cross-validation. 
 
-1. We split D into k non-overlapping data sets. [*Franzi question: do we only this once at the beginning? or do we repeat this in each cycle? if we re-do this how is this different from above?* Mel answer: This is eaxctly not different from the above.]
-2. The k sets are then divided further into D_train (k-1 of the sets), and D_test (the kth set).
-3. We train a classifier on D_train.
-4. We evaluate the trained classifer on D_test and record only the predictions \hat{y}_k on the kth set that was not used for training [*Franzi: this is the same as a above right? now whether you store the predictions or the acc_k - I don't think matters?* Mel answer: Actually, this is the whole point. Think about accuracy or the area under the ROC curve as a non-linear transformation. It matters if one does that non-linear transformation once on the whole dataset or does it several times on smaller datastes and averages. This is the pet peeve I was exctly talking about.]  
-5. We go back to step 1 and repeat k-1 more times and end therefor up with k prediction vectors, each on a different D_test. [*Franzi are we going back to step 1 or step 2?* Mel answer: sorry for not being clear, step 2]
-
-After this finishes we have n prediction estimates across the k folds. We report the final acc_cv = acc([pred_1, pred_2, ..., pred_k]). 
+1. Just like above, we split $D$ into $k$ non-overlapping data sets. 
+2. The $k$ sets are then divided further into $D_{train}$ ($k$-1 of the sets), and $D_{test}$ (the $k$th set).
+3. We train a classifier on $D_{train}$.
+4. We evaluate the trained classifer on $D_{test}$ and record only the predictions $\hat{y}_k$ on the $k$ th set that was not used for training Until now we have not done anything different than in approach 1. We deviate now.  
+5. We go back to step 2 and repeat it $k$-1 more times and end therefor up with $k$ predictions, each on a different $D_{test}$. 
+6. After this finishes we have $n$ prediction estimates across the $k$ folds. We report the final performance metric $perf_{cv} = perf([pred_1, pred_2, ..., pred_k])$. 
 
 Advantages of this approach:
-* The estimation of the acc_cv is based on all n samples.
+* The estimation of the $perf_{cv}$ is based on all n samples.
 * Especially in the unbalanced case, the imbalance is not changed.
 
 Drawbacks of this approach: 
-* We only get a single accuracy from running one k-fold cross-validation. This can though be mitigated by runnign e.g. 50 times randomized k-fold cross-validation as advertised by paper 2 below.
+* We only get a single perfomance metric from running one k-fold cross-validation. This can though be mitigated by running e.g. 50 times randomized $k$-fold cross-validation as advertised by paper 2 below.
 
 ## Randomzied cross-validation
 
@@ -81,6 +80,3 @@ Some papers to look at
 
 ## Methods
 We will simulate different cases of unbalanced data in a very simple classification setting, e.g. just usign a single feature and then adding more complicated settings.
-
-
-
