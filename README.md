@@ -1,7 +1,7 @@
 # UnbalancedCV
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![CI](https://github.com/melanieganz/UnbalancedCV/workflows/CI/badge.svg)](https://github.com/melanieganz/UnbalancedCV/actions?query=workflow%3ACI)
-[![codecov](https://codecov.io/gh/melanieganz/UnbalancedCV/branch/main/graph/badge.svg)](https://codecov.io/gh/melanieganz/UnbalancedCV)
+
 <br>
 Authors: Ruben Doerfel, Franziska Meier and Melanie Ganz
 
