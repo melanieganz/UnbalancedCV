@@ -77,13 +77,15 @@ Now in the case of a loss that is not only dependent on the individual samples, 
 
 Across a given sample, the expected AUCROC can be defined as:        
 
-$\ell(y, f_\theta(x)) = \frac{1}{N_{neg} N_{pos}} \sum_{i=1}^{N_{neg}} \sum_{j=1}^{N_{pos}} \mathbb{1}(f_\theta(x_{j}) > f_\theta(x_{i})) \mathbb{1}(y_i=0, y_j=1)$ ,
+$\ell(y, f_\theta(x)) = \frac{1}{N_{neg} N_{pos}} \sum_{i=1}^{N} \sum_{j=1}^{N} \mathbb{1}(f_\theta(x_{j}) > f_\theta(x_{i})) \mathbb{1}(y_i=0, y_j=1) = \frac{1}{N_{neg} N_{pos}} \sum_{i=1}^{N_{neg}} \sum_{j=1}^{N_{pos}} \mathbb{1}(f_\theta(x_{j}) > f_\theta(x_{i}))$ ,
 
-where $N_{pos}$ and $N_{neg}$ are the number of positive and negative samples, respectively.
-  
+where $N_{pos}$ and $N_{neg}$ are the number of positive and negative samples, respectively (see [Le Dell et al., 2015](#references)).
+
 
 
 ## Code Examples 
 
 In the notebooks we show an example of how the two approaches differ in practice. 
 
+## References
+- Le Dell, E., Petersen, M., & van der Laan, M.(2015). "Computationally efficient confidence intervals for cross-validated area under the ROC curve estimates." *Electronic Journal of Statistics*, 9(1), 1583–1607. [https://doi.org/10.1214/15-EJS1035](https://doi.org/10.1214/15-EJS1035)
