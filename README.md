@@ -79,6 +79,9 @@ conda activate unbalancedcv
 
 # Install from requirements.txt using conda
 conda install --file requirements.txt
+
+# install the local package
+pip install -e .
 ```
 now run the jupyter notebook from inside the repo dir
 
