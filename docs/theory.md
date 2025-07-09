@@ -36,12 +36,41 @@ average of the test errors in each hold-out set $\mathcal{D}^{test}_k$:
 
 $\mathcal{E}^{gen} \approx \mathcal{E}^{gen}_{average} = \sum_{k=1}^{K} \frac{N_k}{N}\mathcal{E}^{test}_k$  with $N_k$ being the number of test samples per fold, and $N$ the
 total number of samples, and $
-\mathcal{E}^{test} = \frac{1}{N_k} \sum_{j=1}^{N_k} \ell(y_{k,j}, f_\theta(x_{k,j}))$ where $j$ indexes into the $k$-th fold.
+\mathcal{E}^{test} = \frac{1}{N_k} \sum_{j=1}^{N_k} \ell(y_{k,j}, f_\theta(x_{k,j}))$, where $j$ indexes into the $k$-th fold.
 
 ## Approach 2: Pooled Generalization Error
 
 The generalization error can also be approximated by the loss evaluate don the whole dataset, which is pooled from all test sets:
 
-$\mathcal{E}^{gen} \approx \mathcal{E}^{gen}_{pooled} = \frac{1}{N} \sum_{i=1}^{N} \ell(y_{i}, f_\theta(x_{i}))$
+$\mathcal{E}^{gen} \approx \mathcal{E}^{gen}_{pooled} = \frac{1}{N} \sum_{i=1}^{N} \ell(y_{i}, f_\theta(x_{i}))$, where $i$ indexes all $N$ samples.
 
+
+## Theoretical Example
+
+Let us define different scenarios for the two approaches.First we will choose our loss to be accuracy, which is defined as the fraction of correct predictions. At the single sample level, the loss is hence defined as:
+
+$\ell(y, f_\theta(x)) = \begin{cases}
+1 & \text{if } y = f_\theta(x) \\
+0 & \text{otherwise}  
+\end{cases} = \mathbb{1}(y, f_\theta(x))$  
+
+The averaged generalization error for this loss is then:
+
+$$\mathcal{E}^{gen}_{average} = 
+\sum_{k=1}^{K} \frac{N_k}{N} \mathcal{E}^{test}_k =
+ \sum_{k=1}^{K} \frac{N_k}{N} \frac{1}{N_k} \sum_{j=1}^{N_k} \ell(y_{k,j}, f_\theta(x_{k,j})) = 
+ \frac{1}{N} \sum_{k=1}^{K} \sum_{j=1}^{N_k} \ell\mathbb{1}(y_{k,j}, f_\theta(x_{k,j})) = 
+ \frac{1}{N} \sum_{i=1}^{N} \mathbb{1}(y_{i}, f_\theta(x_{i}))$$.
+
+
+ The pooled generalization error is then:
+$$\mathcal{E}^{gen}_{pooled} = \frac{1}{N} \sum_{i=1}^{N} \ell(y_{i}, f_\theta(x_{i})) =
+\frac{1}{N} \sum_{i=1}^{N} \mathbb{1}(y_{i}, f_\theta(x_{i}))$$.
+
+In this case, the averaged generalization error is equal to the pooled generalization error, since we are summing over all samples in the end.
+
+
+## Code Examples 
+
+In the notebooks we show an example of how the two approaches differ in practice. 
 
