@@ -70,12 +70,15 @@ Some papers to look at
 We will simulate different cases of unbalanced data in a very simple classification setting, e.g. just usign a single feature and then adding more complicated settings.
 
 ## Environment setup:
-```
-conda create -n unbalancedcv  python=3.10
+```bash
+# create the environment with the right python version
+conda create -n unbalancedcv python=3.10
+
+# Activate the environment
 conda activate unbalancedcv
-conda install jupyter
-conda install pytorch
-pip install matplotlib
+
+# Install from requirements.txt using conda
+conda install --file requirements.txt
 ```
 now run the jupyter notebook from inside the repo dir
 
