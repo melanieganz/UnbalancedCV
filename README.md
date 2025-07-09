@@ -60,7 +60,7 @@ The two approaches above can be repeated for L times randomized k-fold cross-val
 
 # Theoretical considerations for Cross-Validation
 
-# Generalization Error
+## Generalization Error
 
 With any kind of metric we aim to ultimatly estimate how the model would
 perform in general. Assuming the datagenerating distribution
@@ -68,17 +68,17 @@ $p(\mathbf{x}, \mathbf{y})$, and infinite data, we can estimate the
 generalization error for a trained model $f_\theta$ with the loss
 $\ell(\mathbf{y}, f_\theta(\mathbf{x}))$ as
 
-$$
+$
 \mathcal{E}^{gen} = \mathbb{E}_{(\mathbf{x},\mathbf{y}) \sim p(\mathbf{x}, \mathbf{y})}[\ell(\mathbf{y}, f_\theta(\mathbf{x}))]
 = \int \ell(\mathbf{y}, f_\theta(\mathbf{x})) p(\mathbf{x}, \mathbf{y}) d\mathbf{x}d\mathbf{y}
-$$
+$
 
 The problem here is that we do not know the underlying distribution. An
 alternative would be to approximate the generalization error. This can
 be either done on a large enough hold-out set, or using k-fold
 cross-validation.
 
-# K‑Fold Cross‑Validation
+## K‑Fold Cross‑Validation
 
 In K-fold cross-validation (CV), we split our dataset $\mathcal{D}$ into
 $k$ folds and use $k$-1 folds for training, and one for testing. This is
@@ -88,7 +88,7 @@ error matching our approach 1 and 2 described in the ReadMe. One is to evaulate 
 test-folds $\mathcal{D}^{test}_k$ and then average them. We refer to this as
 $\mathcal{E}^{gen}_{average}$. The other option is to pool all predictions from the hold-out sets and evaluate the loss on the the pooled data, we refer to this as $\mathcal{E}^{gen}_{pooled}$. 
 
-## Aproach 1: Averaged Generalization Error
+### Aproach 1: Averaged Generalization Error
 
 The generalization error can then be approximated as the weighted
 average of the test errors in each hold-out set $\mathcal{D}^{test}_k$:
@@ -97,7 +97,7 @@ $\mathcal{E}^{gen} \approx \mathcal{E}^{gen}_{average} = \sum_{k=1}^{K} \frac{N_
 total number of samples, and $
 \mathcal{E}^{test} = \frac{1}{N_k} \sum_{j=1}^{N_k} \ell(y_{k,j}, f_\theta(x_{k,j}))$, where $j$ indexes into the $k$-th fold.
 
-## Approach 2: Pooled Generalization Error
+### Approach 2: Pooled Generalization Error
 
 The generalization error can also be approximated by the loss evaluate don the whole dataset, which is pooled from all test sets:
 
@@ -140,17 +140,9 @@ $\ell(y, f_\theta(x)) = \frac{1}{N_{neg} N_{pos}} \sum_{i=1}^{N} \sum_{j=1}^{N} 
 
 where $N_{pos}$ and $N_{neg}$ are the number of positive and negative samples, respectively (see [Le Dell et al., 2015](#references)).
 
-## References
-- Le Dell, E., Petersen, M., & van der Laan, M.(2015). "Computationally efficient confidence intervals for cross-validated area under the ROC curve estimates." *Electronic Journal of Statistics*, 9(1), 1583–1607. [https://doi.org/10.1214/15-EJS1035](https://doi.org/10.1214/15-EJS1035)
-
-- "Cross-validation: what does it estimate and how well does it do it?", Bates, Hastie and Tibshirani 2022 - [arxiv](https://arxiv.org/pdf/2104.00673)
-
-- "Assessing and tuning brain decoders: Cross-validation, caveats, and guidelines" [link](https://www.sciencedirect.com/science/article/abs/pii/S105381191630595X?casa_token=MZ9ERMMPX-oAAAAA:Qe-o-9LdL3uLNcK90To0nChJ85KEzJX9gvCnFygK4kh5h4ETdXoHXNp-i_WfM44VoAWNK_IEyvzn)
-
-## Methods
-We will simulate different cases of unbalanced data in a very simple classification setting, e.g. just using a single feature and then adding more complicated settings.
-
 ## Code Examples 
+
+We will simulate different cases of unbalanced data in a very simple classification setting, e.g. just using a single feature and then adding more complicated settings.
 
 In the notebooks we show an example of how the two approaches differ in practice. 
 
@@ -173,3 +165,10 @@ now run the jupyter notebook from inside the repo dir
 ```
 jupyter notebook
 ```
+
+## References
+- Le Dell, E., Petersen, M., & van der Laan, M.(2015). "Computationally efficient confidence intervals for cross-validated area under the ROC curve estimates." *Electronic Journal of Statistics*, 9(1), 1583–1607. [https://doi.org/10.1214/15-EJS1035](https://doi.org/10.1214/15-EJS1035)
+
+- "Cross-validation: what does it estimate and how well does it do it?", Bates, Hastie and Tibshirani 2022 - [arxiv](https://arxiv.org/pdf/2104.00673)
+
+- "Assessing and tuning brain decoders: Cross-validation, caveats, and guidelines" [link](https://www.sciencedirect.com/science/article/abs/pii/S105381191630595X?casa_token=MZ9ERMMPX-oAAAAA:Qe-o-9LdL3uLNcK90To0nChJ85KEzJX9gvCnFygK4kh5h4ETdXoHXNp-i_WfM44VoAWNK_IEyvzn)
