@@ -1,6 +1,5 @@
 # Theoretical considerations for Cross-Validation
 
-
 # Generalization Error
 
 With any kind of metric we aim to ultimatly estimate how the model would
