@@ -14,20 +14,20 @@ $$
 = \int \ell(\mathbf{y}, f_\theta(\mathbf{x})) p(\mathbf{x}, \mathbf{y}) d\mathbf{x}d\mathbf{y}
 $$
 
-The problem here is that we do not know the underlying distirubiton. An
+The problem here is that we do not know the underlying distribution. An
 alternative would be to approximate the generalization error. This can
 be either done on a large enough hold-out set, or using k-fold
 cross-validation.
 
 # K‑Fold Cross‑Validation
 
-In K-fold cros-validation (CV), we split our dataset $\mathcal{D}$ into
-K folds and use K-1 folds for training, and one for testing. This is
-repeated K times so that each fold was used for testing once. On each of
-the test-folds $\mathcal{D}^{test}_k$, we can compute the test error.
+In K-fold cross-validation (CV), we split our dataset $\mathcal{D}$ into
+$k$ folds and use $k$-1 folds for training, and one for testing. This is
+repeated $k$  times so that each fold was used for testing once. 
 There are two strategies that can be used to compute the generalization
-error matching our approach 1 and 2 describe din the ReadMe. One is to evaulate the loss for each fold and average then. We refere to this as
-$\mathcal{E}^{gen}_{average}$. The other option is to pool all predictions from the hold-out sets and evaluate the Loss on the the pooled data, we refer to this as $\mathcal{E}^{gen}_{pooled}$. 
+error matching our approach 1 and 2 described in the ReadMe. One is to evaulate the loss for each of the $k$
+test-folds $\mathcal{D}^{test}_k$ and then average them. We refer to this as
+$\mathcal{E}^{gen}_{average}$. The other option is to pool all predictions from the hold-out sets and evaluate the loss on the the pooled data, we refer to this as $\mathcal{E}^{gen}_{pooled}$. 
 
 ## Aproach 1: Averaged Generalization Error
 
@@ -43,3 +43,5 @@ total number of samples, and $
 The generalization error can also be approximated by the loss evaluate don the whole dataset, which is pooled from all test sets:
 
 $\mathcal{E}^{gen} \approx \mathcal{E}^{gen}_{pooled} = \frac{1}{N} \sum_{i=1}^{N} \ell(y_{i}, f_\theta(x_{i}))$
+
+
