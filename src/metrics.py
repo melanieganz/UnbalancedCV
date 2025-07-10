@@ -29,7 +29,7 @@ def accuracy(y_true: np.ndarray, y_pred: np.ndarray, y_proba: np.ndarray | None 
     """
     Fraction of exact matches.
     """
-    return float(np.mean(y_pred == y_true))
+    return _sk_metrics.accuracy_score(y_true, y_pred)
 
 
 def rocauc(y_true: np.ndarray, y_pred: np.ndarray | None, y_proba: np.ndarray) -> float:
