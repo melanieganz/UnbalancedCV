@@ -22,7 +22,7 @@ def test_auc_known_example():
     # from sklearn docs: metrics.auc should be 0.75
     y_true = np.array([0, 0, 1, 1])
     y_score = np.array([0.1, 0.4, 0.35, 0.8])
-    result = metrics.auc(y_true, None, y_score)
+    result = metrics.rocauc(y_true, None, y_score)
     assert pytest.approx(result, rel=1e-6) == 0.75
 
 
@@ -30,16 +30,16 @@ def test_auc_errors_on_missing_proba():
     y_true = np.array([0, 1])
     # if y_proba is None, roc_curve will error
     with pytest.raises(ValueError):
-        _ = metrics.auc(y_true, None, None)
+        _ = metrics.rocauc(y_true, None, None)
 
 
 def test_create_metrics():
     # Create a dictionary of metrics
-    created_metrics = metrics.create_metrics(["accuracy", "auc"])
+    created_metrics = metrics.create_metrics(["accuracy", "rocauc"])
 
     # Check if the created metrics match the expected functions
     assert created_metrics["accuracy"] == metrics.accuracy
-    assert created_metrics["auc"] == metrics.auc
+    assert created_metrics["rocauc"] == metrics.rocauc
 
 
 def test_create_metrics_invalid():

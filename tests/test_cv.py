@@ -1,6 +1,6 @@
 # tests/test_cv.py
 from src.cv import run_cv
-from src.metrics import accuracy, auc
+from src.metrics import accuracy, rocauc
 
 import numpy as np
 import pytest
@@ -24,7 +24,7 @@ def test_run_cv_perfect_classifier():
     X = np.array([[0], [1], [0], [1]])
     y = np.array([0, 1, 0, 1])
 
-    metrics = {"accuracy": accuracy, "auc": auc}
+    metrics = {"accuracy": accuracy, "rocauc": rocauc}
     model = SimpleModel()
 
     result = run_cv(
@@ -42,11 +42,11 @@ def test_run_cv_perfect_classifier():
 
     # Fold‐average should be perfect
     assert avg["accuracy"] == pytest.approx(1.0)
-    assert avg["auc"] == pytest.approx(1.0)
+    assert avg["rocauc"] == pytest.approx(1.0)
 
     # Pooled over all folds also perfect
     assert pooled["accuracy"] == pytest.approx(1.0)
-    assert pooled["auc"] == pytest.approx(1.0)
+    assert pooled["rocauc"] == pytest.approx(1.0)
 
 
 def test_run_cv_stratification_effect():
@@ -54,7 +54,7 @@ def test_run_cv_stratification_effect():
     X = np.array([[0]] * 45 + [[1]] * 5)
     y = np.array([0] * 45 + [1] * 5)
 
-    metrics = {"accuracy": accuracy, "auc": auc}
+    metrics = {"accuracy": accuracy, "rocauc": rocauc}
     model = SimpleModel()
 
     non_strat_res = run_cv(
@@ -84,14 +84,14 @@ def test_run_cv_stratification_effect():
 
     # Stratified: exactly one positive per fold → perfect AUC everywhere
     assert avg_strat["accuracy"] == pytest.approx(1.0)
-    assert avg_strat["auc"] == pytest.approx(1.0)
+    assert avg_strat["rocauc"] == pytest.approx(1.0)
     assert pooled_strat["accuracy"] == pytest.approx(1.0)
-    assert pooled_strat["auc"] == pytest.approx(1.0)
+    assert pooled_strat["rocauc"] == pytest.approx(1.0)
 
     # Non‑stratified: some folds lack positives → fold‐average AUC is nan
     assert avg_non["accuracy"] == pytest.approx(1.0)
-    assert np.isnan(avg_non["auc"])
+    assert np.isnan(avg_non["rocauc"])
 
     # But pooled over all folds recovers perfect AUC
     assert pooled_non["accuracy"] == pytest.approx(1.0)
-    assert pooled_non["auc"] == pytest.approx(1.0)
+    assert pooled_non["rocauc"] == pytest.approx(1.0)
