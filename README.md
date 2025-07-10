@@ -68,10 +68,11 @@ $p(\mathbf{x}, \mathbf{y})$, and infinite data, we can estimate the
 generalization error for a trained model $f_\theta$ with the loss
 $\ell(\mathbf{y}, f_\theta(\mathbf{x}))$ as
 
-$
-\mathcal{E}^{gen} = \mathbb{E}_{(\mathbf{x},\mathbf{y}) \sim p(\mathbf{x}, \mathbf{y})}[\ell(\mathbf{y}, f_\theta(\mathbf{x}))]
-= \int \ell(\mathbf{y}, f_\theta(\mathbf{x})) p(\mathbf{x}, \mathbf{y}) d\mathbf{x}d\mathbf{y}
-$
+```math
+\begin{align}
+\mathcal{E}^{gen} = \mathbb{E}_{(\mathbf{x},\mathbf{y}) \sim p(\mathbf{x}, \mathbf{y})}[\ell(\mathbf{y}, f_\theta(\mathbf{x}))] = \int \ell(\mathbf{y}, f_\theta(\mathbf{x})) p(\mathbf{x}, \mathbf{y}) d\mathbf{x}d\mathbf{y}
+\end{align}
+```
 
 The problem here is that we do not know the underlying distribution. An
 alternative would be to approximate the generalization error. This can
@@ -93,40 +94,69 @@ $\mathcal{E}^{gen}_{average}$. The other option is to pool all predictions from 
 The generalization error can then be approximated as the weighted
 average of the test errors in each hold-out set $\mathcal{D}^{test}_k$:
 
-$\mathcal{E}^{gen} \approx \mathcal{E}^{gen}_{average} = \sum_{k=1}^{K} \frac{N_k}{N}\mathcal{E}^{test}_k$  with $N_k$ being the number of test samples per fold, and $N$ the
-total number of samples, and $
-\mathcal{E}^{test} = \frac{1}{N_k} \sum_{j=1}^{N_k} \ell(y_{k,j}, f_\theta(x_{k,j}))$, where $j$ indexes into the $k$-th fold.
+```math
+\begin{align}
+\mathcal{E}^{gen} \approx \mathcal{E}^{gen}_{average} = \sum_{k=1}^{K} \frac{N_k}{N}\mathcal{E}^{test}_k
+\end{align}
+```
+
+with $N_k$ being the number of test samples per fold, and $N$ the
+total number of samples, and 
+
+```math
+\begin{align}
+\mathcal{E}^{test} = \frac{1}{N_k} \sum_{j=1}^{N_k} \ell(y_{k,j}, f_\theta(x_{k,j})), 
+\end{align}
+```
+
+where $j$ indexes into the $k$-th fold.
 
 ### Approach 2: Pooled Generalization Error
 
 The generalization error can also be approximated by the loss evaluate don the whole dataset, which is pooled from all test sets:
 
-$\mathcal{E}^{gen} \approx \mathcal{E}^{gen}_{pooled} = \frac{1}{N} \sum_{i=1}^{N} \ell(y_{i}, f_\theta(x_{i}))$, where $i$ indexes all $N$ samples.
+```math
+\begin{align}
+\mathcal{E}^{gen} \approx \mathcal{E}^{gen}_{pooled} = \frac{1}{N} \sum_{i=1}^{N} \ell(y_{i}, f_\theta(x_{i})), 
+\end{align}
+```
+
+where $i$ indexes all $N$ samples.
 
 
 ## Theoretical Example
 
 Let us define different scenarios for the two approaches.First we will choose our loss to be accuracy, which is defined as the fraction of correct predictions. At the single sample level, the loss is hence defined as:
 
-$\ell(y, f_\theta(x)) = \begin{cases}
+```math
+\begin{align}
+\ell(y, f_\theta(x)) = \begin{cases}
 1 & \text{if } y = f_\theta(x) \\
 0 & \text{otherwise}  
-\end{cases} = \mathbb{1}(y, f_\theta(x))$,
+\end{cases} = \mathbb{1}(y, f_\theta(x)),
+\end{align}
+```
 
 where $\mathbb{1}(y, f_\theta(x))$ is the indicator function that returns 1 if the prediction is correct and 0 otherwise.  
 
 The averaged generalization error for this loss is then:
 
-$$\mathcal{E}^{gen}_{average} = 
+```math
+\begin{align}
+\mathcal{E}^{gen}_{average} &= 
 \sum_{k=1}^{K} \frac{N_k}{N} \mathcal{E}^{test}_k =
- \sum_{k=1}^{K} \frac{N_k}{N} \frac{1}{N_k} \sum_{j=1}^{N_k} \ell(y_{k,j}, f_\theta(x_{k,j})) = 
- \frac{1}{N} \sum_{k=1}^{K} \sum_{j=1}^{N_k} \ell\mathbb{1}(y_{k,j}, f_\theta(x_{k,j})) = 
- \frac{1}{N} \sum_{i=1}^{N} \mathbb{1}(y_{i}, f_\theta(x_{i}))$$.
+\sum_{k=1}^{K} \frac{N_k}{N} \frac{1}{N_k} \sum_{j=1}^{N_k} \ell(y_{k,j}, f_\theta(x_{k,j})) \\
+&=\frac{1}{N} \sum_{k=1}^{K} \sum_{j=1}^{N_k} \ell\mathbb{1}(y_{k,j}, f_\theta(x_{k,j})) \\
+&=\frac{1}{N} \sum_{i=1}^{N} \mathbb{1}(y_{i}, f_\theta(x_{i})).
+\end{align}
+```
 
+The pooled generalization error is then:
 
- The pooled generalization error is then:
-$$\mathcal{E}^{gen}_{pooled} = \frac{1}{N} \sum_{i=1}^{N} \ell(y_{i}, f_\theta(x_{i})) =
-\frac{1}{N} \sum_{i=1}^{N} \mathbb{1}(y_{i}, f_\theta(x_{i}))$$.
+```math
+\mathcal{E}^{gen}_{pooled} = \frac{1}{N} \sum_{i=1}^{N} \ell(y_{i}, f_\theta(x_{i})) =
+\frac{1}{N} \sum_{i=1}^{N} \mathbb{1}(y_{i}, f_\theta(x_{i})).
+```
 
 In this case, the averaged generalization error is equal to the pooled generalization error, since we are evaluating the idicator funtion for each individual sample and then summing over all samples in the end.
 
@@ -136,7 +166,14 @@ Now in the case of a loss that is not only dependent on the individual samples, 
 
 Across a given sample, the expected AUCROC can be defined as:        
 
-$\ell(y, f_\theta(x)) = \frac{1}{N_{neg} N_{pos}} \sum_{i=1}^{N} \sum_{j=1}^{N} \mathbb{1}(f_\theta(x_{j}) > f_\theta(x_{i})) \mathbb{1}(y_i=0, y_j=1) = \frac{1}{N_{neg} N_{pos}} \sum_{i=1}^{N_{neg}} \sum_{j=1}^{N_{pos}} \mathbb{1}(f_\theta(x_{j}) > f_\theta(x_{i}))$ ,
+```math
+\begin{align}
+\ell(y, f_\theta(x)) &= 
+\frac{1}{N_{neg} N_{pos}} \sum_{i=1}^{N} \sum_{j=1}^{N} \mathbb{1}(f_\theta(x_{j}) > f_\theta(x_{i})) \mathbb{1}(y_i=0, y_j=1) \\
+&= \frac{1}{N_{neg} N_{pos}} \sum_{i=1}^{N_{neg}} \sum_{j=1}^{N_{pos}} \mathbb{1}(f_\theta(x_{j}) > 
+f_\theta(x_{i})),
+\end{align}
+```
 
 where $N_{pos}$ and $N_{neg}$ are the number of positive and negative samples, respectively (see [Le Dell et al., 2015](#references)).
 
