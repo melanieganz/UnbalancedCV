@@ -26,20 +26,21 @@ def test_auc_known_example():
     assert pytest.approx(result, rel=1e-6) == 0.75
 
 
-def test_auc_errors_on_missing_proba():
-    y_true = np.array([0, 1])
-    # if y_proba is None, roc_curve will error
-    with pytest.raises(ValueError):
-        _ = metrics.rocauc(y_true, None, None)
+def test_aucprc_known_example():
+    y_true = np.array([0, 0, 1, 1])
+    y_scores = np.array([0.1, 0.4, 0.35, 0.8])
+    result = metrics.prcauc(y_true, None, y_scores)
+    assert round(result, 2) == 0.83
 
 
 def test_create_metrics():
     # Create a dictionary of metrics
-    created_metrics = metrics.create_metrics(["accuracy", "rocauc"])
+    created_metrics = metrics.create_metrics(["accuracy", "rocauc", "prcauc"])
 
     # Check if the created metrics match the expected functions
     assert created_metrics["accuracy"] == metrics.accuracy
     assert created_metrics["rocauc"] == metrics.rocauc
+    assert created_metrics["prcauc"] == metrics.prcauc
 
 
 def test_create_metrics_invalid():

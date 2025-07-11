@@ -14,6 +14,7 @@ def create_metrics(metric_names: list[str]) -> dict[str, callable]:
     available_metrics = {
         "accuracy": accuracy,
         "rocauc": rocauc,
+        "prcauc": prcauc,
     }
 
     metrics = {}
@@ -37,3 +38,10 @@ def rocauc(y_true: np.ndarray, y_pred: np.ndarray | None, y_proba: np.ndarray) -
     ROC‑AUC based on predicted scores.
     """
     return _sk_metrics.roc_auc_score(y_true, y_proba)
+
+
+def prcauc(y_true: np.ndarray, y_pred: np.ndarray | None, y_proba: np.ndarray) -> float:
+    """
+    Precision-Recall AUC based on predicted scores.
+    """
+    return _sk_metrics.average_precision_score(y_true, y_proba)
