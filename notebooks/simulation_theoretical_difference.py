@@ -1,142 +1,309 @@
+# %%
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.metrics import roc_auc_score
 
-# Set random seed for reproducibility
-np.random.seed(42)
 
-# Parameters
-k = 5  # number of folds
-Nk = 100  # number of elements per fold
-N = k * Nk  # total number of elements
-Npk = 30  # number of positives per fold
-Nnk = Nk - Npk  # number of negatives per fold
+def compute_auc(data):
+    """
+    Compute AUC on pooled data and as weighted average across folds.
 
-# Initialize arrays
-y = np.zeros(N, dtype=int)
-y_score = np.zeros(N)
-fold_indices = np.zeros(N, dtype=int)
+    Parameters
+    ----------
+    data : dict
+        Output from simulate_cv_data()
 
-# Generate data for each fold
-for fold in range(k):
-    start_idx = fold * Nk
-    end_idx = start_idx + Nk
+    Returns
+    -------
+    dict
+        Dictionary containing:
+        - 'auc_pooled': AUC computed on all data pooled together
+        - 'auc_weighted': Weighted average of per-fold AUCs (weighted by Nk/N)
+        - 'auc_per_fold': Array of AUC values for each fold
+    """
+    y = data["y"]
+    y_score = data["y_score"]
+    fold_indices = data["fold_indices"]
+    N = data["N"]
 
-    # Assign fold indices
-    fold_indices[start_idx:end_idx] = fold
+    k = len(np.unique(fold_indices))
+    Nk = N // k
 
-    # Create labels: Npk positives (1) and Nnk negatives (0)
-    y[start_idx : start_idx + Npk] = 1
-    y[start_idx + Npk : end_idx] = 0
+    # Compute pooled AUC (entire vector)
+    auc_pooled = roc_auc_score(y, y_score)
 
-    if fold < k - 1:
-        # Perfect classification for first k-1 folds
-        # Positives get score = 1, negatives get score = 0
-        y_score[start_idx : start_idx + Npk] = 1.0
-        y_score[start_idx + Npk : end_idx] = 0.0
-    else:
-        # Imperfect classification for last fold
-        # Add some noise/errors
-        # Positives get scores around 0.7 with noise
-        y_score[start_idx : start_idx + Npk] = np.random.uniform(0.4, 0.95, Npk)
-        # Negatives get scores around 0.3 with noise
-        y_score[start_idx + Npk : end_idx] = np.random.uniform(0.05, 0.6, Nnk)
+    # Compute AUC per fold
+    auc_per_fold = np.zeros(k)
+    for fold in range(k):
+        start_idx = fold * Nk
+        end_idx = start_idx + Nk
 
-# Shuffle within each fold to mix positives and negatives
-for fold in range(k):
-    start_idx = fold * Nk
-    end_idx = start_idx + Nk
+        fold_y = y[start_idx:end_idx]
+        fold_scores = y_score[start_idx:end_idx]
 
-    shuffle_idx = np.random.permutation(Nk) + start_idx
-    y[start_idx:end_idx] = y[shuffle_idx]
-    y_score[start_idx:end_idx] = y_score[shuffle_idx]
+        # Check if fold has both classes (needed for AUC calculation)
+        if len(np.unique(fold_y)) > 1:
+            auc_per_fold[fold] = roc_auc_score(fold_y, fold_scores)
+        else:
+            auc_per_fold[fold] = np.nan
 
-# Print summary statistics
-print(f"Total samples: {N}")
-print(f"Number of folds: {k}")
-print(f"Samples per fold: {Nk}")
-print(f"Positives per fold: {Npk}")
-print(f"Negatives per fold: {Nnk}")
-print(f"\nLabel distribution: {np.bincount(y)}")
+    # Compute weighted average of per-fold AUCs
+    # Weight = Nk / N (each fold has equal weight if all folds have same size)
+    weight = Nk / N
+    auc_weighted = np.nansum(auc_per_fold * weight)
 
-# Print statistics per fold
-print("\nPer-fold statistics:")
-for fold in range(k):
-    start_idx = fold * Nk
-    end_idx = start_idx + Nk
+    return {"auc_pooled": auc_pooled, "auc_weighted": auc_weighted, "auc_per_fold": auc_per_fold}
 
-    fold_y = y[start_idx:end_idx]
-    fold_scores = y_score[start_idx:end_idx]
 
-    # Calculate accuracy (assuming threshold = 0.5)
-    predictions = (fold_scores >= 0.5).astype(int)
-    accuracy = np.mean(predictions == fold_y)
+def simulate_cv_data(
+    k=5, N=500, positive_ratio=0.3, pos_score_range=(0.4, 0.95), neg_score_range=(0.05, 0.6), random_seed=None
+):
+    """
+    Simulate cross-validation labels and scores with perfect classification
+    in first k-1 folds and imperfect classification in the last fold.
 
-    print(
-        f"Fold {fold}: Accuracy = {accuracy:.3f}, "
-        f"Mean score = {fold_scores.mean():.3f}, "
-        f"Positive rate = {fold_y.mean():.3f}"
-    )
+    Parameters
+    ----------
+    k : int, default=5
+        Number of folds
+    N : int, default=500
+        Total number of samples
+    positive_ratio : float, default=0.3
+        Ratio of positive samples per fold (between 0 and 1)
+    pos_score_range : tuple, default=(0.4, 0.95)
+        Range of scores for positive class in the last fold (min, max)
+    neg_score_range : tuple, default=(0.05, 0.6)
+        Range of scores for negative class in the last fold (min, max)
+    random_seed : int or None, default=None
+        Random seed for reproducibility
 
-# Visualization
-fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    Returns
+    -------
+    dict
+        Dictionary containing:
+        - 'y': array of labels (0 or 1)
+        - 'y_score': array of predicted scores [0, 1]
+        - 'fold_indices': array indicating which fold each sample belongs to
+        - 'N': total number of samples
+        - 'k': number of folds
+        - 'Nk': number of samples per fold
+        - 'Npk': number of positives per fold
+        - 'Nnk': number of negatives per fold
+    """
+    if random_seed is not None:
+        np.random.seed(random_seed)
 
-# Plot 1: Score distribution by label for each fold
-ax1 = axes[0]
-for fold in range(k):
-    start_idx = fold * Nk
-    end_idx = start_idx + Nk
+    if not 0 <= positive_ratio <= 1:
+        raise ValueError("positive_ratio must be between 0 and 1")
 
-    fold_y = y[start_idx:end_idx]
-    fold_scores = y_score[start_idx:end_idx]
+    if N % k != 0:
+        raise ValueError(f"N ({N}) must be divisible by k ({k})")
 
-    pos_scores = fold_scores[fold_y == 1]
-    neg_scores = fold_scores[fold_y == 0]
+    Nk = N // k  # number of samples per fold
+    Npk = int(Nk * positive_ratio)  # number of positives per fold
+    Nnk = Nk - Npk  # number of negatives per fold
 
-    offset = fold * 0.15
-    ax1.scatter(
-        [fold + offset] * len(pos_scores),
-        pos_scores,
-        alpha=0.3,
-        c="red",
-        s=20,
-        label=f"Fold {fold} Positive" if fold == 0 else "",
-    )
-    ax1.scatter(
-        [fold + offset] * len(neg_scores),
-        neg_scores,
-        alpha=0.3,
-        c="blue",
-        s=20,
-        label=f"Fold {fold} Negative" if fold == 0 else "",
-    )
+    # Initialize arrays
+    y = np.zeros(N, dtype=int)
+    y_score = np.zeros(N)
+    fold_indices = np.zeros(N, dtype=int)
 
-ax1.set_xlabel("Fold")
-ax1.set_ylabel("Score")
-ax1.set_title("Score Distribution by Fold and Label")
-ax1.axvline(k - 1.5, color="green", linestyle="--", linewidth=2, label="Last fold boundary")
-ax1.legend(["Positive", "Negative", "Last fold boundary"])
-ax1.grid(True, alpha=0.3)
+    # Generate data for each fold
+    for fold in range(k):
+        start_idx = fold * Nk
+        end_idx = start_idx + Nk
 
-# Plot 2: Histogram of scores for last fold
-ax2 = axes[1]
-last_fold_start = (k - 1) * Nk
-last_fold_y = y[last_fold_start:]
-last_fold_scores = y_score[last_fold_start:]
+        # Assign fold indices
+        fold_indices[start_idx:end_idx] = fold
 
-ax2.hist(last_fold_scores[last_fold_y == 1], bins=20, alpha=0.6, color="red", label="Positive (y=1)")
-ax2.hist(last_fold_scores[last_fold_y == 0], bins=20, alpha=0.6, color="blue", label="Negative (y=0)")
-ax2.axvline(0.5, color="black", linestyle="--", linewidth=2, label="Decision threshold")
-ax2.set_xlabel("Score")
-ax2.set_ylabel("Count")
-ax2.set_title(f"Score Distribution in Last Fold (Fold {k-1})")
-ax2.legend()
-ax2.grid(True, alpha=0.3)
+        # Create labels: Npk positives (1) and Nnk negatives (0)
+        y[start_idx : start_idx + Npk] = 1
+        y[start_idx + Npk : end_idx] = 0
 
-plt.tight_layout()
-plt.show()
+        if fold < k - 1:
+            # Perfect classification for first k-1 folds
+            # Positives get score = 1, negatives get score = 0
+            y_score[start_idx : start_idx + Npk] = np.random.uniform(0.8, 1.0, size=Npk)
+            y_score[start_idx + Npk : end_idx] = np.random.uniform(0.0, 0.2, size=Nnk)
+        else:
+            # Imperfect classification for last fold
+            # y_score[start_idx : start_idx + Npk] = np.random.uniform(0.4, 1.0, size=Npk)
+            # y_score[start_idx + Npk : end_idx] = np.random.uniform(0.0, 0.6, size=Nnk)
 
-# Export the data
-print("\nData shapes:")
-print(f"y shape: {y.shape}")
-print(f"y_score shape: {y_score.shape}")
-print(f"fold_indices shape: {fold_indices.shape}")
+            y_score[start_idx : start_idx + Npk] = np.random.uniform(0.8, 1.0, size=Npk)
+            y_score[start_idx + Npk : end_idx] = np.random.uniform(0.0, 0.2, size=Nnk)
+
+            # only the last one in each get's a different score to make it imperfect
+            y_score[end_idx - 1] = 0.6
+            y_score[start_idx + Npk - 1] = 0.4
+
+    # Shuffle within each fold to mix positives and negatives
+    for fold in range(k):
+        start_idx = fold * Nk
+        end_idx = start_idx + Nk
+
+        shuffle_idx = np.random.permutation(Nk) + start_idx
+        y[start_idx:end_idx] = y[shuffle_idx]
+        y_score[start_idx:end_idx] = y_score[shuffle_idx]
+
+    return {"y": y, "y_score": y_score, "fold_indices": fold_indices, "N": N, "k": k, "Nk": Nk, "Npk": Npk, "Nnk": Nnk}
+
+
+def print_cv_statistics(data):
+    """
+    Print summary statistics for simulated cross-validation data.
+
+    Parameters
+    ----------
+    data : dict
+        Output from simulate_cv_data()
+    """
+    y = data["y"]
+    y_score = data["y_score"]
+    fold_indices = data["fold_indices"]
+    N = data["N"]
+
+    k = len(np.unique(fold_indices))
+    Nk = N // k
+    Npk = data["Npk"]
+    Nnk = data["Nnk"]
+
+    print(f"Total samples: {N}")
+    print(f"Number of folds: {k}")
+    print(f"Samples per fold: {Nk}")
+    print(f"Positives per fold: {Npk}")
+    print(f"Negatives per fold: {Nnk}")
+    print(f"\nLabel distribution: {np.bincount(y)}")
+
+    # Print statistics per fold
+    print("\nPer-fold statistics:")
+    for fold in range(k):
+        start_idx = fold * Nk
+        end_idx = start_idx + Nk
+
+        fold_y = y[start_idx:end_idx]
+        fold_scores = y_score[start_idx:end_idx]
+
+        # Calculate accuracy (assuming threshold = 0.5)
+        predictions = (fold_scores >= 0.5).astype(int)
+        accuracy = np.mean(predictions == fold_y)
+
+        print(
+            f"Fold {fold}: Accuracy = {accuracy:.3f}, "
+            f"Mean score = {fold_scores.mean():.3f}, "
+            f"Positive rate = {fold_y.mean():.3f}"
+        )
+
+
+def plot_cv_data(data):
+    """
+    Visualize simulated cross-validation data.
+
+    Parameters
+    ----------
+    data : dict
+        Output from simulate_cv_data()
+    """
+    y = data["y"]
+    y_score = data["y_score"]
+    fold_indices = data["fold_indices"]
+    N = data["N"]
+
+    k = len(np.unique(fold_indices))
+    Nk = N // k
+
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    # Plot 1: Score distribution by label for each fold
+    ax1 = axes[0]
+    for fold in range(k):
+        start_idx = fold * Nk
+        end_idx = start_idx + Nk
+
+        fold_y = y[start_idx:end_idx]
+        fold_scores = y_score[start_idx:end_idx]
+
+        pos_scores = fold_scores[fold_y == 1]
+        neg_scores = fold_scores[fold_y == 0]
+
+        offset = fold * 0.15
+        ax1.scatter(
+            [fold + offset] * len(pos_scores),
+            pos_scores,
+            alpha=0.3,
+            c="red",
+            s=20,
+            label=f"Fold {fold} Positive" if fold == 0 else "",
+        )
+        ax1.scatter(
+            [fold + offset] * len(neg_scores),
+            neg_scores,
+            alpha=0.3,
+            c="blue",
+            s=20,
+            label=f"Fold {fold} Negative" if fold == 0 else "",
+        )
+
+    ax1.set_xlabel("Fold")
+    ax1.set_ylabel("Score")
+    ax1.set_title("Score Distribution by Fold and Label")
+    ax1.axvline(k - 1.5, color="green", linestyle="--", linewidth=2, label="Last fold boundary")
+    ax1.legend(["Positive", "Negative", "Last fold boundary"])
+    ax1.grid(True, alpha=0.3)
+
+    # Plot 2: Histogram of scores for last fold
+    ax2 = axes[1]
+    last_fold_start = (k - 1) * Nk
+    last_fold_y = y[last_fold_start:]
+    last_fold_scores = y_score[last_fold_start:]
+
+    ax2.hist(last_fold_scores[last_fold_y == 1], bins=20, alpha=0.6, color="red", label="Positive (y=1)")
+    ax2.hist(last_fold_scores[last_fold_y == 0], bins=20, alpha=0.6, color="blue", label="Negative (y=0)")
+    ax2.axvline(0.5, color="black", linestyle="--", linewidth=2, label="Decision threshold")
+    ax2.set_xlabel("Score")
+    ax2.set_ylabel("Count")
+    ax2.set_title(f"Score Distribution in Last Fold (Fold {k-1})")
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def calculate_theoretical_difference(N, K, pos_ratio):
+    Np = N * pos_ratio
+    Nn = N * (1 - pos_ratio)
+    return (K - 1) / (Np * Nn)
+
+
+# Example usage
+if __name__ == "__main__":
+    # Simulate data
+    K = 5
+    N = 100
+    positive_ratio = 0.4
+
+    data = simulate_cv_data(k=K, N=N, positive_ratio=positive_ratio, random_seed=123)
+
+    # Print statistics
+    print_cv_statistics(data)
+
+    # Compute AUC metrics
+    auc_results = compute_auc(data)
+    print("\nAUC Metrics:")
+    print(f"AUC (pooled): {auc_results['auc_pooled']:.4f}")
+    print(f"AUC (weighted average): {auc_results['auc_weighted']:.4f}")
+    print(f"AUC per fold: {auc_results['auc_per_fold']}")
+
+    # difference between pooled and weighted
+    diff = auc_results["auc_pooled"] - auc_results["auc_weighted"]
+    print(f"\nDifference between pooled and weighted AUC: {diff:.6f}")
+
+    # Theoretical difference
+    theoretical_diff = calculate_theoretical_difference(N, K, positive_ratio)
+    print(f"Theoretical difference: {theoretical_diff:.6f}")
+
+    # Plot
+    plot_cv_data(data)
+
+# %%
