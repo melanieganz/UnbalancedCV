@@ -4,16 +4,16 @@ from sklearn.metrics import precision_recall_curve, auc, roc_auc_score, Precisio
 import numpy as np
 import matplotlib.pyplot as plt
 
-k = 3
+k = 2
 Nk = 5
 N = k * Nk
 
-y_true = np.array([0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0])
-y_scores = np.array([0.1, 0.9, 0.8, 0.2, 0.3, 0.7, 0.4, 0.1, 0.4, 0.95, 0.85, 0.75, 0.35, 0.55, 0.45])
+# Example 2: Simple binary classification
+y_true = np.array([1, 0, 1, 0, 0, 1, 1, 1, 1, 0])
+y_scores = np.array([0.8, 0.2, 0.7, 0.4, 0.45, 0.55, 0.35, 0.7, 0.8, 0.55])
 
 print("y_true:", y_true)
 print("y_scor:", (y_scores > 0.5).astype(int))
-
 
 # chuck it into k folds
 folds = [np.arange(i * Nk, (i + 1) * Nk) for i in range(k)]
@@ -27,8 +27,9 @@ for i, fold in enumerate(folds):
 
 # compute the pooled AUC-ROC
 pooled_auc_roc = roc_auc_score(y_true, y_scores)
-# average AUC-ROC across folds, as folds are equal in size, we can just take the mean
-avg_auc_roc = np.mean(folds_aucr_cor)
+
+# average AUC-ROC across folds
+avg_auc_roc = np.nansum(Nk / N * np.array(folds_aucr_cor))
 
 print(f"Average AUC-ROC across folds: {avg_auc_roc:.4f}")
 print(f"Pooled AUC-ROC: {pooled_auc_roc:.4f}")
@@ -50,7 +51,7 @@ def calculate_theoretical_difference(N, K, pos_ratio):
 # %%
 N = 100
 pos_ratios = np.linspace(0.01, 1, 100)
-k = np.arange(2, 11)
+k = np.array([3, 5, 7, 10])
 
 
 plt.figure(figsize=(10, 6))
