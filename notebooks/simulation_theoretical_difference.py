@@ -126,14 +126,13 @@ def simulate_cv_data(
             y_score[start_idx : start_idx + Npk] = np.random.uniform(0.8, 1.0, size=Npk)
             y_score[start_idx + Npk : end_idx] = np.random.uniform(0.0, 0.2, size=Nnk)
         else:
-            # Imperfect classification for last fold
+            # multiple overlapping
             # y_score[start_idx : start_idx + Npk] = np.random.uniform(0.4, 1.0, size=Npk)
             # y_score[start_idx + Npk : end_idx] = np.random.uniform(0.0, 0.6, size=Nnk)
 
+            # only one overlapping
             y_score[start_idx : start_idx + Npk] = np.random.uniform(0.8, 1.0, size=Npk)
             y_score[start_idx + Npk : end_idx] = np.random.uniform(0.0, 0.2, size=Nnk)
-
-            # only the last one in each get's a different score to make it imperfect
             y_score[end_idx - 1] = 0.6
             y_score[start_idx + Npk - 1] = 0.4
 
@@ -279,31 +278,53 @@ def calculate_theoretical_difference(N, K, pos_ratio):
 # Example usage
 if __name__ == "__main__":
     # Simulate data
-    K = 5
+    Ks = [2, 5, 10]
     N = 100
-    positive_ratio = 0.4
+    positive_ratios = np.linspace(0.2, 0.8, 7)
 
-    data = simulate_cv_data(k=K, N=N, positive_ratio=positive_ratio, random_seed=123)
+    results_matrix = np.zeros((len(Ks), len(positive_ratios)))
+    results_matrix_theoretical = np.zeros((len(Ks), len(positive_ratios)))
 
-    # Print statistics
-    print_cv_statistics(data)
+    for i, K in enumerate(Ks):
+        for j, positive_ratio in enumerate(positive_ratios):
+            print(f"\n=== K={K}, positive_ratio={positive_ratio:.2f} ===")
+            data = simulate_cv_data(k=K, N=N, positive_ratio=positive_ratio, random_seed=123)
 
-    # Compute AUC metrics
-    auc_results = compute_auc(data)
-    print("\nAUC Metrics:")
-    print(f"AUC (pooled): {auc_results['auc_pooled']:.4f}")
-    print(f"AUC (weighted average): {auc_results['auc_weighted']:.4f}")
-    print(f"AUC per fold: {auc_results['auc_per_fold']}")
+            # Print statistics
+            print_cv_statistics(data)
 
-    # difference between pooled and weighted
-    diff = auc_results["auc_pooled"] - auc_results["auc_weighted"]
-    print(f"\nDifference between pooled and weighted AUC: {diff:.6f}")
+            # Compute AUC metrics
+            auc_results = compute_auc(data)
+            print("\nAUC Metrics:")
+            print(f"AUC (pooled): {auc_results['auc_pooled']:.4f}")
+            print(f"AUC (weighted average): {auc_results['auc_weighted']:.4f}")
+            print(f"AUC per fold: {auc_results['auc_per_fold']}")
 
-    # Theoretical difference
-    theoretical_diff = calculate_theoretical_difference(N, K, positive_ratio)
-    print(f"Theoretical difference: {theoretical_diff:.6f}")
+            # difference between pooled and weighted
+            diff = auc_results["auc_pooled"] - auc_results["auc_weighted"]
+            print(f"\nDifference between pooled and weighted AUC: {diff:.6f}")
 
+            # Theoretical difference
+            theoretical_diff = calculate_theoretical_difference(N, K, positive_ratio)
+            print(f"Theoretical difference: {theoretical_diff:.6f}")
+
+            # Store results
+            results_matrix[i, j] = diff
+            results_matrix_theoretical[i, j] = theoretical_diff
     # Plot
     plot_cv_data(data)
+
+    plt.figure(figsize=(8, 6))
+    for i, K in enumerate(Ks):
+        plt.plot(positive_ratios, results_matrix[i], marker="o", label=f"K={K} (Simulated)")
+        plt.plot(
+            positive_ratios, results_matrix_theoretical[i], marker="x", linestyle="--", label=f"K={K} (Theoretical)"
+        )
+    plt.xlabel("Positive class ratio")
+    plt.ylabel("Difference between pooled and weighted AUC")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
 
 # %%
