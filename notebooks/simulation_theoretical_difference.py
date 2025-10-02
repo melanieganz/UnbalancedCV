@@ -117,8 +117,8 @@ def simulate_cv_data(
         fold_indices[start_idx:end_idx] = fold
 
         # Create labels: Npk positives (1) and Nnk negatives (0)
-        y[start_idx : start_idx + Npk] = 1
-        y[start_idx + Npk : end_idx] = 0
+        y[start_idx : start_idx + Npk] = 0
+        y[start_idx + Npk : end_idx] = 1
 
         if fold < k - 1:
             # Perfect classification for first k-1 folds
@@ -133,17 +133,10 @@ def simulate_cv_data(
             # only one overlapping
             y_score[start_idx : start_idx + Npk] = np.random.uniform(0.8, 1.0, size=Npk)
             y_score[start_idx + Npk : end_idx] = np.random.uniform(0.0, 0.2, size=Nnk)
-            y_score[end_idx - 1] = 0.6
-            y_score[start_idx + Npk - 1] = 0.4
-
-    # Shuffle within each fold to mix positives and negatives
-    for fold in range(k):
-        start_idx = fold * Nk
-        end_idx = start_idx + Nk
-
-        shuffle_idx = np.random.permutation(Nk) + start_idx
-        y[start_idx:end_idx] = y[shuffle_idx]
-        y_score[start_idx:end_idx] = y_score[shuffle_idx]
+            # y_score[end_idx - 2] = 0.6
+            y_score[end_idx - 1] = 0.55
+            y_score[start_idx + Npk - 1] = 0.45
+            # y_score[start_idx + Npk - 2] = 0.4
 
     return {"y": y, "y_score": y_score, "fold_indices": fold_indices, "N": N, "k": k, "Nk": Nk, "Npk": Npk, "Nnk": Nnk}
 
@@ -301,8 +294,8 @@ if __name__ == "__main__":
             print(f"AUC per fold: {auc_results['auc_per_fold']}")
 
             # difference between pooled and weighted
-            diff = auc_results["auc_pooled"] - auc_results["auc_weighted"]
-            print(f"\nDifference between pooled and weighted AUC: {diff:.6f}")
+            diff = auc_results["auc_weighted"] - auc_results["auc_pooled"]
+            print(f"\nDifference between averaged and pooled AUC: {diff:.6f}")
 
             # Theoretical difference
             theoretical_diff = calculate_theoretical_difference(N, K, positive_ratio)
@@ -321,7 +314,7 @@ if __name__ == "__main__":
             positive_ratios, results_matrix_theoretical[i], marker="x", linestyle="--", label=f"K={K} (Theoretical)"
         )
     plt.xlabel("Positive class ratio")
-    plt.ylabel("Difference between pooled and weighted AUC")
+    plt.ylabel("Difference between averaged and pooled AUC")
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
