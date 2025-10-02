@@ -382,15 +382,16 @@ def plot_simulation_results(axes, row, results_matrix, results_matrix_theoretica
         axes[row, 2].plot(
             positive_ratios, results_matrix[i], marker="o", markersize=4, label=f"K={K} (Simulated)", color=color
         )
-        axes[row, 2].plot(
-            positive_ratios,
-            results_matrix_theoretical[i],
-            marker="x",
-            markersize=5,
-            linestyle="--",
-            label=f"K={K} (Theoretical)",
-            color=color,
-        )
+        if row != 2:
+            axes[row, 2].plot(
+                positive_ratios,
+                results_matrix_theoretical[i],
+                marker="x",
+                markersize=5,
+                linestyle="--",
+                label=f"K={K} (Theoretical)",
+                color=color,
+            )
 
     axes[row, 2].grid(True, alpha=0.3)
     axes[row, 2].set_ylabel(r"$AUC_{Average} - AUC_{Pooled}$")
@@ -454,3 +455,5 @@ if __name__ == "__main__":
     fig.tight_layout()
     fig.savefig("theoretical_vs_simulated.pdf")
     fig.savefig("theoretical_vs_simulated.png")
+
+# %%
