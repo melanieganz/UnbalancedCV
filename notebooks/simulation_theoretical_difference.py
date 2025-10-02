@@ -281,44 +281,45 @@ def calculate_theoretical_difference(N, K, pos_ratio):
     return (K - 1) / (Np * Nn)
 
 
-# Example usage
-if __name__ == "__main__":
-    # Simulate data
-    Ks = [2, 5, 10]
-    N = 100
-    positive_ratios = np.linspace(0.2, 0.8, 7)
-
+def run_simulation(Ks, N, positive_ratios, case="single_overlap"):
     results_matrix = np.zeros((len(Ks), len(positive_ratios)))
     results_matrix_theoretical = np.zeros((len(Ks), len(positive_ratios)))
 
     for i, K in enumerate(Ks):
         for j, positive_ratio in enumerate(positive_ratios):
             print(f"\n=== K={K}, positive_ratio={positive_ratio:.2f} ===")
-            data = simulate_cv_data(k=K, N=N, positive_ratio=positive_ratio, case="single_overlap", random_seed=123)
+            data = simulate_cv_data(k=K, N=N, positive_ratio=positive_ratio, case=case, random_seed=123)
 
             # Print statistics
             print_cv_statistics(data)
 
             # Compute AUC metrics
             auc_results = compute_auc(data)
-            print("\nAUC Metrics:")
-            print(f"AUC (pooled): {auc_results['auc_pooled']:.4f}")
-            print(f"AUC (weighted average): {auc_results['auc_weighted']:.4f}")
-            print(f"AUC per fold: {auc_results['auc_per_fold']}")
 
             # difference between pooled and weighted
             diff = auc_results["auc_weighted"] - auc_results["auc_pooled"]
-            print(f"\nDifference between averaged and pooled AUC: {diff:.6f}")
 
             # Theoretical difference
             theoretical_diff = calculate_theoretical_difference(N, K, positive_ratio)
-            print(f"Theoretical difference: {theoretical_diff:.6f}")
 
             # Store results
             results_matrix[i, j] = diff
             results_matrix_theoretical[i, j] = theoretical_diff
-    # Plot
-    plot_cv_data(data)
+
+    return results_matrix, results_matrix_theoretical
+
+
+# Example usage
+if __name__ == "__main__":
+
+    ## Case 1: 1 missclassification in last fold
+    # Simulate data for Ks and positive ratios
+
+    # Example usage
+    Ks = [2, 5, 10]
+    N = 100
+    positive_ratios = np.linspace(0.2, 0.8, 7)
+    results_matrix, results_matrix_theoretical = run_simulation(Ks, N, positive_ratios, case="single_overlap")
 
     plt.figure(figsize=(8, 6))
     for i, K in enumerate(Ks):
@@ -332,5 +333,12 @@ if __name__ == "__main__":
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     plt.show()
+
+    # Plot example data
+    example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="single_overlap", random_seed=42)
+    plot_cv_data(example_data)
+
+    ## Case 2: 2 missclassifications in last fold
+
 
 # %%
