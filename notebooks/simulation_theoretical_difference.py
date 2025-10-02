@@ -147,9 +147,22 @@ def simulate_cv_data(
                 y_score[start_idx + Npk - 1] = 0.6
                 y_score[start_idx + Npk - 2] = 0.55
 
+            elif case == "three_overlap":  # three overlapping
+                y_score[start_idx : start_idx + Npk] = np.random.uniform(0.0, 0.2, size=Npk)
+                y_score[start_idx + Npk : end_idx] = np.random.uniform(0.8, 1.0, size=Nnk)
+                y_score[end_idx - 1] = 0.4
+                y_score[end_idx - 2] = 0.45
+                y_score[end_idx - 3] = 0.49
+                y_score[start_idx + Npk - 1] = 0.6
+                y_score[start_idx + Npk - 2] = 0.55
+                y_score[start_idx + Npk - 3] = 0.51
+
             elif case == "multiple_overlap":  # multiple overlapping
                 y_score[start_idx : start_idx + Npk] = np.random.uniform(0.0, 0.6, size=Npk)
                 y_score[start_idx + Npk : end_idx] = np.random.uniform(0.4, 1.0, size=Nnk)
+
+            else:
+                raise ValueError(f"Unknown case: {case}")
 
     return {"y": y, "y_score": y_score, "fold_indices": fold_indices, "N": N, "k": k, "Nk": Nk, "Npk": Npk, "Nnk": Nnk}
 
@@ -292,15 +305,16 @@ def compute_missclassified(data):
     last_fold_y = y[last_fold_start:]
     last_fold_scores = y_score[last_fold_start:]
 
-    # Predicted label: 1 if score <= 0.5, else 0 (since scores are for class 0)
-    predictions = (last_fold_scores <= 0.5).astype(int)
+    last_fold_true_1 = last_fold_scores[last_fold_y == 1]
+    last_fold_true_0 = last_fold_scores[last_fold_y == 0]
 
-    # Positives (y=1) predicted as negative (pred=0)
-    pos_as_neg = np.sum((last_fold_y == 1) & (predictions == 0))
-    # Negatives (y=0) predicted as positive (pred=1)
-    neg_as_pos = np.sum((last_fold_y == 0) & (predictions == 1))
+    last_fold_true_1_max = np.max(last_fold_true_1)
+    last_fold_true_0_min = np.min(last_fold_true_0)
 
-    return pos_as_neg, neg_as_pos
+    n_pos_as_neg = np.sum(last_fold_true_1 >= last_fold_true_0_min)
+    n_neg_as_pos = np.sum(last_fold_true_0 <= last_fold_true_1_max)
+
+    return n_pos_as_neg, n_neg_as_pos
 
 
 def run_simulation(Ks, N, positive_ratios, case="single_overlap"):
@@ -357,7 +371,7 @@ if __name__ == "__main__":
     plt.show()
 
     # Plot example data
-    example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="single_overlap", random_seed=42)
+    example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="single_overlap", random_seed=50)
     plot_cv_data(example_data)
 
     ## Case 2: 2 missclassifications in last fold
@@ -376,10 +390,29 @@ if __name__ == "__main__":
     plt.show()
 
     # Plot example data
-    example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="two_overlap", random_seed=42)
+    example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="two_overlap", random_seed=50)
     plot_cv_data(example_data)
 
-    ## Case 3: multiple missclassifications in last fold
+    ## Case 3: 3 missclassifications in last fold
+    results_matrix, results_matrix_theoretical = run_simulation(Ks, N, positive_ratios, case="three_overlap")
+    plt.figure(figsize=(8, 6))
+    for i, K in enumerate(Ks):
+        plt.plot(positive_ratios, results_matrix[i], marker="o", label=f"K={K} (Simulated)")
+        plt.plot(
+            positive_ratios, results_matrix_theoretical[i], marker="x", linestyle="--", label=f"K={K} (Theoretical)"
+        )
+    plt.xlabel("Positive class ratio")
+    plt.ylabel("Difference between averaged and pooled AUC")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
+    # Plot example data
+    example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="three_overlap", random_seed=50)
+    plot_cv_data(example_data)
+
+    ## Case 4: multiple missclassifications in last fold
     results_matrix, results_matrix_theoretical = run_simulation(Ks, N, positive_ratios, case="multiple_overlap")
     plt.figure(figsize=(8, 6))
     for i, K in enumerate(Ks):
@@ -395,15 +428,66 @@ if __name__ == "__main__":
     plt.show()
 
     # Plot example data
-    example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="multiple_overlap", random_seed=42)
+    example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="multiple_overlap", random_seed=50)
     plot_cv_data(example_data)
 
 
 # %%
-# compute number of miss classified samples in last fold
-example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="multiple_overlap", random_seed=42)
+def compute_missclassified(data):
+    y = data["y"]
+    y_score = data["y_score"]
+    fold_indices = data["fold_indices"]
+    k = len(np.unique(fold_indices))
+    Nk = data["Nk"]
+
+    last_fold_start = (k - 1) * Nk
+    last_fold_y = y[last_fold_start:]
+    last_fold_scores = y_score[last_fold_start:]
+
+    print(last_fold_scores[last_fold_y == 1])
+    print(last_fold_scores[last_fold_y == 0])
+
+    last_fold_true_1 = last_fold_scores[last_fold_y == 1]
+    last_fold_true_0 = last_fold_scores[last_fold_y == 0]
+
+    last_fold_true_1_max = np.max(last_fold_true_1)
+    last_fold_true_0_min = np.min(last_fold_true_0)
+
+    # plot the distributions as dots
+    plt.figure(figsize=(8, 3))
+    plt.scatter(last_fold_true_1, np.zeros_like(last_fold_true_1), color="red", alpha=0.5, label="True 1")
+    plt.scatter(last_fold_true_0, np.ones_like(last_fold_true_0), color="blue", alpha=0.5, label="True 0")
+    plt.axvline(last_fold_true_1_max, color="red", linestyle="--", label="Max True 1")
+    plt.axvline(last_fold_true_0_min, color="blue", linestyle="--", label="Min True 0")
+    plt.axvline(0.5, color="black", linestyle="--", label="Decision threshold")
+    plt.xlabel("Score")
+    plt.yticks([0, 1], ["True 1", "True 0"])
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+    n_pos_as_neg = np.sum(last_fold_true_1 > last_fold_true_0_min)
+    n_neg_as_pos = np.sum(last_fold_true_0 < last_fold_true_1_max)
+
+    return n_pos_as_neg, n_neg_as_pos
+
+
+example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="two_overlap", random_seed=1)
 pos_as_neg, neg_as_pos = compute_missclassified(example_data)
-calculate_theoretical_difference(N=100, K=5, pos_ratio=0.3, Nbn=pos_as_neg, Nbp=neg_as_pos)
+print(f"Positives classified as negatives: {pos_as_neg}")
+print(f"Negatives classified as positives: {neg_as_pos}")
 auc_results = compute_auc(example_data)
-auc_results["auc_weighted"] - auc_results["auc_pooled"]
+experimental_diff = auc_results["auc_weighted"] - auc_results["auc_pooled"]
+theoretical_diff = calculate_theoretical_difference(N=100, K=5, pos_ratio=0.3, Nbn=pos_as_neg, Nbp=neg_as_pos)
+print(f"Experimental difference: {experimental_diff}")
+print(f"Theoretical difference: {theoretical_diff}")
+print(f"diff diff: {experimental_diff - theoretical_diff}")
+
+
+# %%
+experimental_diff = auc_results["auc_weighted"] - auc_results["auc_pooled"]
+theoretical_diff = calculate_theoretical_difference(N=100, K=5, pos_ratio=0.3, Nbn=5, Nbp=1)
+
+experimental_diff - theoretical_diff
+
 # %%
