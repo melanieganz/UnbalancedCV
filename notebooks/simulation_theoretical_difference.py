@@ -275,10 +275,10 @@ def plot_cv_data(data):
     plt.show()
 
 
-def calculate_theoretical_difference(N, K, pos_ratio):
+def calculate_theoretical_difference(N, K, pos_ratio, Nbn=1, Nbp=1):
     Np = N * pos_ratio
     Nn = N * (1 - pos_ratio)
-    return (K - 1) / (Np * Nn)
+    return (K - 1) * (Nbn * Nbp) / (Np * Nn)
 
 
 def run_simulation(Ks, N, positive_ratios, case="single_overlap"):
