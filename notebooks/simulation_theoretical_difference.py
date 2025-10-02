@@ -282,16 +282,14 @@ def calculate_theoretical_difference(N, K, pos_ratio):
 
 
 def run_simulation(Ks, N, positive_ratios, case="single_overlap"):
+    print(f"Running simulation for case: {case}")
+    print(f"N={N}, Ks={Ks}, positive_ratios={positive_ratios}")
     results_matrix = np.zeros((len(Ks), len(positive_ratios)))
     results_matrix_theoretical = np.zeros((len(Ks), len(positive_ratios)))
 
     for i, K in enumerate(Ks):
         for j, positive_ratio in enumerate(positive_ratios):
-            print(f"\n=== K={K}, positive_ratio={positive_ratio:.2f} ===")
             data = simulate_cv_data(k=K, N=N, positive_ratio=positive_ratio, case=case, random_seed=123)
-
-            # Print statistics
-            print_cv_statistics(data)
 
             # Compute AUC metrics
             auc_results = compute_auc(data)
@@ -312,13 +310,12 @@ def run_simulation(Ks, N, positive_ratios, case="single_overlap"):
 # Example usage
 if __name__ == "__main__":
 
-    ## Case 1: 1 missclassification in last fold
-    # Simulate data for Ks and positive ratios
-
-    # Example usage
+    ## simulation parameters:
     Ks = [2, 5, 10]
     N = 100
     positive_ratios = np.linspace(0.2, 0.8, 7)
+
+    ## Case 1: 1 missclassification in last fold
     results_matrix, results_matrix_theoretical = run_simulation(Ks, N, positive_ratios, case="single_overlap")
 
     plt.figure(figsize=(8, 6))
@@ -339,6 +336,41 @@ if __name__ == "__main__":
     plot_cv_data(example_data)
 
     ## Case 2: 2 missclassifications in last fold
+    results_matrix, results_matrix_theoretical = run_simulation(Ks, N, positive_ratios, case="two_overlap")
+    plt.figure(figsize=(8, 6))
+    for i, K in enumerate(Ks):
+        plt.plot(positive_ratios, results_matrix[i], marker="o", label=f"K={K} (Simulated)")
+        plt.plot(
+            positive_ratios, results_matrix_theoretical[i], marker="x", linestyle="--", label=f"K={K} (Theoretical)"
+        )
+    plt.xlabel("Positive class ratio")
+    plt.ylabel("Difference between averaged and pooled AUC")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
 
+    # Plot example data
+    example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="two_overlap", random_seed=42)
+    plot_cv_data(example_data)
+
+    ## Case 3: multiple missclassifications in last fold
+    results_matrix, results_matrix_theoretical = run_simulation(Ks, N, positive_ratios, case="multiple_overlap")
+    plt.figure(figsize=(8, 6))
+    for i, K in enumerate(Ks):
+        plt.plot(positive_ratios, results_matrix[i], marker="o", label=f"K={K} (Simulated)")
+        plt.plot(
+            positive_ratios, results_matrix_theoretical[i], marker="x", linestyle="--", label=f"K={K} (Theoretical)"
+        )
+    plt.xlabel("Positive class ratio")
+    plt.ylabel("Difference between averaged and pooled AUC")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
+    # Plot example data
+    example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="multiple_overlap", random_seed=42)
+    plot_cv_data(example_data)
 
 # %%
