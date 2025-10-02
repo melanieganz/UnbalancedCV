@@ -105,7 +105,7 @@ def simulate_cv_data(
 
     # Initialize arrays
     y = np.zeros(N, dtype=int)
-    y_score = np.zeros(N)
+    y_score = np.zeros(N)  # predicted scores of belonging to class 0
     fold_indices = np.zeros(N, dtype=int)
 
     # Generate data for each fold
@@ -117,25 +117,21 @@ def simulate_cv_data(
         fold_indices[start_idx:end_idx] = fold
 
         # Create labels: Npk positives (1) and Nnk negatives (0)
-        y[start_idx : start_idx + Npk] = 0
-        y[start_idx + Npk : end_idx] = 1
+        y[start_idx : start_idx + Npk] = 1
+        y[start_idx + Npk : end_idx] = 0
 
         if fold < k - 1:
             # Perfect classification for first k-1 folds
-            # Positives get score = 1, negatives get score = 0
-            y_score[start_idx : start_idx + Npk] = np.random.uniform(0.8, 1.0, size=Npk)
-            y_score[start_idx + Npk : end_idx] = np.random.uniform(0.0, 0.2, size=Nnk)
+            # For some weird reason, sckit-learn wants the probaility for being 0, not 1. Therefore we "invert" the scores
+            y_score[start_idx : start_idx + Npk] = np.random.uniform(0.0, 0.2, size=Npk)
+            y_score[start_idx + Npk : end_idx] = np.random.uniform(0.8, 1.0, size=Nnk)
         else:
-            # multiple overlapping
-            # y_score[start_idx : start_idx + Npk] = np.random.uniform(0.4, 1.0, size=Npk)
-            # y_score[start_idx + Npk : end_idx] = np.random.uniform(0.0, 0.6, size=Nnk)
-
             # only one overlapping
-            y_score[start_idx : start_idx + Npk] = np.random.uniform(0.8, 1.0, size=Npk)
-            y_score[start_idx + Npk : end_idx] = np.random.uniform(0.0, 0.2, size=Nnk)
+            y_score[start_idx : start_idx + Npk] = np.random.uniform(0.0, 0.2, size=Npk)
+            y_score[start_idx + Npk : end_idx] = np.random.uniform(0.8, 1.0, size=Nnk)
             # y_score[end_idx - 2] = 0.6
-            y_score[end_idx - 1] = 0.55
-            y_score[start_idx + Npk - 1] = 0.45
+            y_score[end_idx - 1] = 0.45
+            y_score[start_idx + Npk - 1] = 0.55
             # y_score[start_idx + Npk - 2] = 0.4
 
     return {"y": y, "y_score": y_score, "fold_indices": fold_indices, "N": N, "k": k, "Nk": Nk, "Npk": Npk, "Nnk": Nnk}
