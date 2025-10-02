@@ -3,6 +3,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score
 
+plt.rcParams.update(
+    {
+        "figure.dpi": 300,
+        "font.family": "serif",
+        "font.size": 8,
+        "axes.labelsize": 9,
+        "axes.titlesize": 9,
+        "xtick.labelsize": 7,
+        "ytick.labelsize": 7,
+        "legend.fontsize": 7,
+        "lines.linewidth": 1.2,
+        "axes.linewidth": 0.8,
+        "legend.frameon": False,
+        "text.usetex": True,  # Uncomment for LaTeX
+        "axes.spines.top": True,
+        "axes.spines.right": True,
+    }
+)
+
 
 def compute_auc(data):
     """
@@ -213,7 +232,7 @@ def print_cv_statistics(data):
         )
 
 
-def plot_cv_data(data):
+def plot_cv_data(data, axes=None):
     """
     Visualize simulated cross-validation data.
 
@@ -230,7 +249,8 @@ def plot_cv_data(data):
     k = len(np.unique(fold_indices))
     Nk = N // k
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    if axes is None:
+        fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
     # Plot 1: Score distribution by label for each fold
     ax1 = axes[0]
@@ -264,11 +284,8 @@ def plot_cv_data(data):
 
     ax1.set_xlabel("Fold")
     ax1.set_ylabel("Score")
-    ax1.set_title("Score Distribution by Fold and Label")
-    ax1.axvline(k - 1.5, color="green", linestyle="--", linewidth=2, label="Last fold boundary")
-    ax1.legend(["Positive", "Negative", "Last fold boundary"])
     ax1.grid(True, alpha=0.3)
-
+    ax1.axhline(0.5, color="black", linestyle="--", linewidth=0.5, label="Decision threshold")
     # Plot 2: Histogram of scores for last fold
     ax2 = axes[1]
     last_fold_start = (k - 1) * Nk
@@ -277,15 +294,10 @@ def plot_cv_data(data):
 
     ax2.hist(last_fold_scores[last_fold_y == 1], bins=20, alpha=0.6, color="red", label="Positive (y=1)")
     ax2.hist(last_fold_scores[last_fold_y == 0], bins=20, alpha=0.6, color="blue", label="Negative (y=0)")
-    ax2.axvline(0.5, color="black", linestyle="--", linewidth=2, label="Decision threshold")
+    ax2.axvline(0.5, color="black", linestyle="--", linewidth=0.5, label="Decision threshold")
     ax2.set_xlabel("Score")
     ax2.set_ylabel("Count")
-    ax2.set_title(f"Score Distribution in Last Fold (Fold {k-1})")
-    ax2.legend()
     ax2.grid(True, alpha=0.3)
-
-    plt.tight_layout()
-    plt.show()
 
 
 def calculate_theoretical_difference(N, K, pos_ratio, Nbn=1, Nbp=1):
@@ -346,6 +358,44 @@ def run_simulation(Ks, N, positive_ratios, case="single_overlap"):
     return results_matrix, results_matrix_theoretical
 
 
+def plot_simulation_results(axes, row, results_matrix, results_matrix_theoretical, Ks, positive_ratios):
+    """
+    Plot simulated and theoretical results for different K values on a given axes row.
+
+    Parameters
+    ----------
+    axes : np.ndarray
+        Array of matplotlib axes.
+    row : int
+        Row index in the axes array to plot on.
+    results_matrix : np.ndarray
+        Simulated results matrix (shape: len(Ks) x len(positive_ratios)).
+    results_matrix_theoretical : np.ndarray
+        Theoretical results matrix (shape: len(Ks) x len(positive_ratios)).
+    Ks : list
+        List of K values (number of folds).
+    positive_ratios : np.ndarray
+        Array of positive class ratios.
+    """
+    for i, K in enumerate(Ks):
+        color = f"C{i}"
+        axes[row, 2].plot(
+            positive_ratios, results_matrix[i], marker="o", markersize=4, label=f"K={K} (Simulated)", color=color
+        )
+        axes[row, 2].plot(
+            positive_ratios,
+            results_matrix_theoretical[i],
+            marker="x",
+            markersize=5,
+            linestyle="--",
+            label=f"K={K} (Theoretical)",
+            color=color,
+        )
+
+    axes[row, 2].grid(True, alpha=0.3)
+    axes[row, 2].set_ylabel(r"$AUC_{Average} - AUC_{Pooled}$")
+
+
 # Example usage
 if __name__ == "__main__":
 
@@ -354,140 +404,53 @@ if __name__ == "__main__":
     N = 100
     positive_ratios = np.linspace(0.2, 0.8, 7)
 
+    # plot results
+    # Convert cm to inches (matplotlib uses inches)
+    cm = 1 / 2.54
+    # Two-column width for NeurIPS/ICML (16cm without margins)
+    fig_width = 17 * cm
+    fig_height = 17 * cm
+
+    fig, axes = plt.subplots(3, 3, figsize=(fig_width, fig_height))
     ## Case 1: 1 missclassification in last fold
     results_matrix, results_matrix_theoretical = run_simulation(Ks, N, positive_ratios, case="single_overlap")
-
-    plt.figure(figsize=(8, 6))
-    for i, K in enumerate(Ks):
-        plt.plot(positive_ratios, results_matrix[i], marker="o", label=f"K={K} (Simulated)")
-        plt.plot(
-            positive_ratios, results_matrix_theoretical[i], marker="x", linestyle="--", label=f"K={K} (Theoretical)"
-        )
-    plt.xlabel("Positive class ratio")
-    plt.ylabel("Difference between averaged and pooled AUC")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.show()
+    plot_simulation_results(axes, 0, results_matrix, results_matrix_theoretical, Ks, positive_ratios)
 
     # Plot example data
     example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="single_overlap", random_seed=50)
-    plot_cv_data(example_data)
+    plot_cv_data(example_data, axes=axes[0, 0:2])
 
     ## Case 2: 2 missclassifications in last fold
     results_matrix, results_matrix_theoretical = run_simulation(Ks, N, positive_ratios, case="two_overlap")
-    plt.figure(figsize=(8, 6))
-    for i, K in enumerate(Ks):
-        plt.plot(positive_ratios, results_matrix[i], marker="o", label=f"K={K} (Simulated)")
-        plt.plot(
-            positive_ratios, results_matrix_theoretical[i], marker="x", linestyle="--", label=f"K={K} (Theoretical)"
-        )
-    plt.xlabel("Positive class ratio")
-    plt.ylabel("Difference between averaged and pooled AUC")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.show()
+    plot_simulation_results(axes, 1, results_matrix, results_matrix_theoretical, Ks, positive_ratios)
 
     # Plot example data
     example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="two_overlap", random_seed=50)
-    plot_cv_data(example_data)
+    plot_cv_data(example_data, axes=axes[2, 0:2])
 
-    ## Case 3: 3 missclassifications in last fold
-    results_matrix, results_matrix_theoretical = run_simulation(Ks, N, positive_ratios, case="three_overlap")
-    plt.figure(figsize=(8, 6))
-    for i, K in enumerate(Ks):
-        plt.plot(positive_ratios, results_matrix[i], marker="o", label=f"K={K} (Simulated)")
-        plt.plot(
-            positive_ratios, results_matrix_theoretical[i], marker="x", linestyle="--", label=f"K={K} (Theoretical)"
-        )
-    plt.xlabel("Positive class ratio")
-    plt.ylabel("Difference between averaged and pooled AUC")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.show()
+    # ## Case 3: 3 misclassifications in last fold
+    # results_matrix, results_matrix_theoretical = run_simulation(Ks, N, positive_ratios, case="three_overlap")
+    # for i, K in enumerate(Ks):
+    #     axes[2, 2].plot(positive_ratios, results_matrix[i], marker="o", label=f"K={K} (Simulated)")
+    #     axes[2, 2].plot(
+    #         positive_ratios, results_matrix_theoretical[i], marker="x", linestyle="--", label=f"K={K} (Theoretical)"
+    #     )
+
+    # axes[2, 2].legend()
+    # axes[2, 2].grid(True, alpha=0.3)
 
     # Plot example data
     example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="three_overlap", random_seed=50)
-    plot_cv_data(example_data)
+    plot_cv_data(example_data, axes=axes[1, 0:2])
 
-    ## Case 4: multiple missclassifications in last fold
+    ## Case 4: multiple misclassifications in last fold
     results_matrix, results_matrix_theoretical = run_simulation(Ks, N, positive_ratios, case="multiple_overlap")
-    plt.figure(figsize=(8, 6))
-    for i, K in enumerate(Ks):
-        plt.plot(positive_ratios, results_matrix[i], marker="o", label=f"K={K} (Simulated)")
-        plt.plot(
-            positive_ratios, results_matrix_theoretical[i], marker="x", linestyle="--", label=f"K={K} (Theoretical)"
-        )
-    plt.xlabel("Positive class ratio")
-    plt.ylabel("Difference between averaged and pooled AUC")
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.show()
+    plot_simulation_results(axes, 2, results_matrix, results_matrix_theoretical, Ks, positive_ratios)
 
     # Plot example data
     example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="multiple_overlap", random_seed=50)
-    plot_cv_data(example_data)
+    plot_cv_data(example_data, axes=axes[2, 0:2])
 
-
-# %%
-def compute_missclassified(data):
-    y = data["y"]
-    y_score = data["y_score"]
-    fold_indices = data["fold_indices"]
-    k = len(np.unique(fold_indices))
-    Nk = data["Nk"]
-
-    last_fold_start = (k - 1) * Nk
-    last_fold_y = y[last_fold_start:]
-    last_fold_scores = y_score[last_fold_start:]
-
-    print(last_fold_scores[last_fold_y == 1])
-    print(last_fold_scores[last_fold_y == 0])
-
-    last_fold_true_1 = last_fold_scores[last_fold_y == 1]
-    last_fold_true_0 = last_fold_scores[last_fold_y == 0]
-
-    last_fold_true_1_max = np.max(last_fold_true_1)
-    last_fold_true_0_min = np.min(last_fold_true_0)
-
-    # plot the distributions as dots
-    plt.figure(figsize=(8, 3))
-    plt.scatter(last_fold_true_1, np.zeros_like(last_fold_true_1), color="red", alpha=0.5, label="True 1")
-    plt.scatter(last_fold_true_0, np.ones_like(last_fold_true_0), color="blue", alpha=0.5, label="True 0")
-    plt.axvline(last_fold_true_1_max, color="red", linestyle="--", label="Max True 1")
-    plt.axvline(last_fold_true_0_min, color="blue", linestyle="--", label="Min True 0")
-    plt.axvline(0.5, color="black", linestyle="--", label="Decision threshold")
-    plt.xlabel("Score")
-    plt.yticks([0, 1], ["True 1", "True 0"])
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-
-    n_pos_as_neg = np.sum(last_fold_true_1 > last_fold_true_0_min)
-    n_neg_as_pos = np.sum(last_fold_true_0 < last_fold_true_1_max)
-
-    return n_pos_as_neg, n_neg_as_pos
-
-
-example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="two_overlap", random_seed=1)
-pos_as_neg, neg_as_pos = compute_missclassified(example_data)
-print(f"Positives classified as negatives: {pos_as_neg}")
-print(f"Negatives classified as positives: {neg_as_pos}")
-auc_results = compute_auc(example_data)
-experimental_diff = auc_results["auc_weighted"] - auc_results["auc_pooled"]
-theoretical_diff = calculate_theoretical_difference(N=100, K=5, pos_ratio=0.3, Nbn=pos_as_neg, Nbp=neg_as_pos)
-print(f"Experimental difference: {experimental_diff}")
-print(f"Theoretical difference: {theoretical_diff}")
-print(f"diff diff: {experimental_diff - theoretical_diff}")
-
-
-# %%
-experimental_diff = auc_results["auc_weighted"] - auc_results["auc_pooled"]
-theoretical_diff = calculate_theoretical_difference(N=100, K=5, pos_ratio=0.3, Nbn=5, Nbp=1)
-
-experimental_diff - theoretical_diff
-
-# %%
+    fig.tight_layout()
+    fig.savefig("theoretical_vs_simulated.pdf")
+    fig.savefig("theoretical_vs_simulated.png")
