@@ -56,7 +56,13 @@ def compute_auc(data):
 
 
 def simulate_cv_data(
-    k=5, N=500, positive_ratio=0.3, pos_score_range=(0.4, 0.95), neg_score_range=(0.05, 0.6), random_seed=None
+    k=5,
+    N=500,
+    positive_ratio=0.3,
+    pos_score_range=(0.4, 0.95),
+    neg_score_range=(0.05, 0.6),
+    case="single_overlap",
+    random_seed=None,
 ):
     """
     Simulate cross-validation labels and scores with perfect classification
@@ -74,6 +80,8 @@ def simulate_cv_data(
         Range of scores for positive class in the last fold (min, max)
     neg_score_range : tuple, default=(0.05, 0.6)
         Range of scores for negative class in the last fold (min, max)
+    case : str, default="single_overlap"
+        Case for last fold: "single_overlap", "two_overlap", or "multiple_overlap"
     random_seed : int or None, default=None
         Random seed for reproducibility
 
@@ -126,13 +134,22 @@ def simulate_cv_data(
             y_score[start_idx : start_idx + Npk] = np.random.uniform(0.0, 0.2, size=Npk)
             y_score[start_idx + Npk : end_idx] = np.random.uniform(0.8, 1.0, size=Nnk)
         else:
-            # only one overlapping
-            y_score[start_idx : start_idx + Npk] = np.random.uniform(0.0, 0.2, size=Npk)
-            y_score[start_idx + Npk : end_idx] = np.random.uniform(0.8, 1.0, size=Nnk)
-            # y_score[end_idx - 2] = 0.6
-            y_score[end_idx - 1] = 0.45
-            y_score[start_idx + Npk - 1] = 0.55
-            # y_score[start_idx + Npk - 2] = 0.4
+            if case == "single_overlap":  # only one overlapping
+                y_score[start_idx : start_idx + Npk] = np.random.uniform(0.0, 0.2, size=Npk)
+                y_score[start_idx + Npk : end_idx] = np.random.uniform(0.8, 1.0, size=Nnk)
+                y_score[end_idx - 1] = 0.4
+                y_score[start_idx + Npk - 1] = 0.6
+            elif case == "two_overlap":  # two overlapping
+                y_score[start_idx : start_idx + Npk] = np.random.uniform(0.0, 0.2, size=Npk)
+                y_score[start_idx + Npk : end_idx] = np.random.uniform(0.8, 1.0, size=Nnk)
+                y_score[end_idx - 1] = 0.4
+                y_score[end_idx - 2] = 0.45
+                y_score[start_idx + Npk - 1] = 0.6
+                y_score[start_idx + Npk - 2] = 0.55
+
+            elif case == "multiple_overlap":  # multiple overlapping
+                y_score[start_idx : start_idx + Npk] = np.random.uniform(0.0, 0.6, size=Npk)
+                y_score[start_idx + Npk : end_idx] = np.random.uniform(0.4, 1.0, size=Nnk)
 
     return {"y": y, "y_score": y_score, "fold_indices": fold_indices, "N": N, "k": k, "Nk": Nk, "Npk": Npk, "Nnk": Nnk}
 
@@ -277,7 +294,7 @@ if __name__ == "__main__":
     for i, K in enumerate(Ks):
         for j, positive_ratio in enumerate(positive_ratios):
             print(f"\n=== K={K}, positive_ratio={positive_ratio:.2f} ===")
-            data = simulate_cv_data(k=K, N=N, positive_ratio=positive_ratio, random_seed=123)
+            data = simulate_cv_data(k=K, N=N, positive_ratio=positive_ratio, case="single_overlap", random_seed=123)
 
             # Print statistics
             print_cv_statistics(data)
