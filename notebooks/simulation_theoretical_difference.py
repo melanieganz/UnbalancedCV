@@ -281,6 +281,28 @@ def calculate_theoretical_difference(N, K, pos_ratio, Nbn=1, Nbp=1):
     return (K - 1) * (Nbn * Nbp) / (Np * Nn)
 
 
+def compute_missclassified(data):
+    y = data["y"]
+    y_score = data["y_score"]
+    fold_indices = data["fold_indices"]
+    k = len(np.unique(fold_indices))
+    Nk = data["Nk"]
+
+    last_fold_start = (k - 1) * Nk
+    last_fold_y = y[last_fold_start:]
+    last_fold_scores = y_score[last_fold_start:]
+
+    # Predicted label: 1 if score <= 0.5, else 0 (since scores are for class 0)
+    predictions = (last_fold_scores <= 0.5).astype(int)
+
+    # Positives (y=1) predicted as negative (pred=0)
+    pos_as_neg = np.sum((last_fold_y == 1) & (predictions == 0))
+    # Negatives (y=0) predicted as positive (pred=1)
+    neg_as_pos = np.sum((last_fold_y == 0) & (predictions == 1))
+
+    return pos_as_neg, neg_as_pos
+
+
 def run_simulation(Ks, N, positive_ratios, case="single_overlap"):
     print(f"Running simulation for case: {case}")
     print(f"N={N}, Ks={Ks}, positive_ratios={positive_ratios}")
@@ -297,8 +319,11 @@ def run_simulation(Ks, N, positive_ratios, case="single_overlap"):
             # difference between pooled and weighted
             diff = auc_results["auc_weighted"] - auc_results["auc_pooled"]
 
+            # get number of positive and negative missclassifications in last fold
+            pos_as_neg, neg_as_pos = compute_missclassified(data)
+
             # Theoretical difference
-            theoretical_diff = calculate_theoretical_difference(N, K, positive_ratio)
+            theoretical_diff = calculate_theoretical_difference(N, K, positive_ratio, pos_as_neg, neg_as_pos)
 
             # Store results
             results_matrix[i, j] = diff
@@ -373,4 +398,12 @@ if __name__ == "__main__":
     example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="multiple_overlap", random_seed=42)
     plot_cv_data(example_data)
 
+
+# %%
+# compute number of miss classified samples in last fold
+example_data = simulate_cv_data(k=5, N=100, positive_ratio=0.3, case="multiple_overlap", random_seed=42)
+pos_as_neg, neg_as_pos = compute_missclassified(example_data)
+calculate_theoretical_difference(N=100, K=5, pos_ratio=0.3, Nbn=pos_as_neg, Nbp=neg_as_pos)
+auc_results = compute_auc(example_data)
+auc_results["auc_weighted"] - auc_results["auc_pooled"]
 # %%
