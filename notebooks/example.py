@@ -241,7 +241,9 @@ def main():
     plt.show()
     # save fig
     fig.savefig("examples_class_probabilities.png")
+    fig.savefig("examples_class_probabilities.pdf")
     print("\n" + "=" * 60)
+
     print("All examples completed!")
     print("=" * 60)
 
