@@ -41,13 +41,10 @@ def run_cv(
 
         model.fit(X_tr, y_tr)
         y_pred = model.predict(X_te)
-        print(model.classes_)
         y_proba = None
 
         positive_class_index = np.where(model.classes_ == 1)[0][0]
-        print(f"Class 1 is at index: {positive_class_index}")
         negative_class_index = np.where(model.classes_ == 0)[0][0]
-        print(f"Class 0 is at index: {negative_class_index}")
 
         if hasattr(model, "predict_proba"):
             y_proba = model.predict_proba(X_te)[:, positive_class_index]  # probability for positive class
