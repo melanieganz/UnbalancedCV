@@ -3,7 +3,6 @@
 from sklearn.model_selection import KFold, StratifiedKFold
 import numpy as np
 from typing import Callable, Mapping
-import pandas as pd
 
 MetricFn = Callable[[np.ndarray, np.ndarray, np.ndarray | None], float]
 
