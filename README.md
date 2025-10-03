@@ -181,7 +181,7 @@ where $N_{pos}$ and $N_{neg}$ are the number of positive and negative samples, r
 
 We will simulate different cases of unbalanced data in a very simple classification setting, e.g. just using a single feature and then adding more complicated settings.
 
-In the notebooks we show an example of how the two approaches differ in practice. 
+In the notebooks and scripts we show an example of how the two approaches differ in practice. 
 
 ### Environment setup:
 ```bash
@@ -197,11 +197,19 @@ conda install --file requirements.txt
 # install the local package
 pip install -e .
 ```
-now run the jupyter notebook from inside the repo dir
 
+### Reproducing the results
+
+To reproduce the simulations, run the script `notebooks/simulation_theoretical_difference.py` from the root directory.
+```bash
+# From the root directory run:
+python notebooks/simulation_theoretical_difference.py
 ```
-jupyter notebook
+To the real world examples, run the script `notebooks/examples.py`. However, you will need the files with the data which will obrait from the specific datasets.
+```bash
+python notebooks/examples.py
 ```
+Both scripts will place the figures in the root directory.
 
 ## References
 - Le Dell, E., Petersen, M., & van der Laan, M.(2015). "Computationally efficient confidence intervals for cross-validated area under the ROC curve estimates." *Electronic Journal of Statistics*, 9(1), 1583–1607. [https://doi.org/10.1214/15-EJS1035](https://doi.org/10.1214/15-EJS1035)
