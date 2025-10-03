@@ -205,7 +205,7 @@ def example_depression_remission(ax):
 
     # and y
     y = df["mdd_episode"].to_numpy()
-    y_binary = (y == "Recurrent").astype(int)
+    y_binary = (y == "Recurrent").astype(bool)
 
     # Check class balance
     print(
@@ -215,7 +215,7 @@ def example_depression_remission(ax):
     # Run cross-validation
     model = LogisticRegression(max_iter=1000000)
     metrics = create_metrics(["accuracy", "rocauc", "prcauc"])
-    results = run_cv(model, X_scaled, y_binary, metrics, n_splits=5, stratified=True, random_state=1)
+    results = run_cv(model, X_scaled, y_binary, metrics, n_splits=5, stratified=True, random_state=1, flipped=True)
     results_df = pd.DataFrame({"average": results["average"], "pooled": results["pooled"]})
     print(results_df)
     print(
@@ -239,6 +239,8 @@ def main():
     # Finalize and show plot
     fig.tight_layout()
     plt.show()
+    # save fig
+    fig.savefig("examples_class_probabilities.png")
     print("\n" + "=" * 60)
     print("All examples completed!")
     print("=" * 60)
