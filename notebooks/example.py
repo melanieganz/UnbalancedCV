@@ -111,7 +111,9 @@ def example_breast_cancer(ax):
     print(
         f"Difference between average and pooled AUC: {results_df['average']['rocauc'] - results_df['pooled']['rocauc']}"
     )
-
+    print(
+        f"Difference between average and pooled PRCAUC: {results_df['average']['prcauc'] - results_df['pooled']['prcauc']}"
+    )
     # Plot results
     y_true_folds = results["true"]
     y_prob_folds = results["probs"]
@@ -169,6 +171,9 @@ def example_cognitive_impairment(ax):
     print(
         f"Difference between average and pooled AUC: {results_df['average']['rocauc'] - results_df['pooled']['rocauc']}"
     )
+    print(
+        f"Difference between average and pooled PRCAUC: {results_df['average']['prcauc'] - results_df['pooled']['prcauc']}"
+    )
 
     # Plot probabilities
     plot_fold_probs(results["true"], results["probs"], ax, "b)")
@@ -221,7 +226,9 @@ def example_depression_remission(ax):
     print(
         f"Difference between average and pooled AUC: {results_df['average']['rocauc'] - results_df['pooled']['rocauc']}"
     )
-
+    print(
+        f"Difference between average and pooled PRCAUC: {results_df['average']['prcauc'] - results_df['pooled']['prcauc']}"
+    )
     # plot results
     plot_fold_probs(results["true"], results["probs"], ax, "c)")
 
