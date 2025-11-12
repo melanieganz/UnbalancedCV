@@ -82,3 +82,49 @@ def run_cv(
         pooled[name] = fn(y_true_all, y_pred_all, y_proba_all)
 
     return {"average": average, "pooled": pooled, "probs": y_prob_folds, "true": y_true_folds}
+
+
+def repeated_cv(
+    model,
+    X: np.ndarray,
+    y: np.ndarray,
+    metrics: Mapping[str, MetricFn],
+    n_splits: int = 5,
+    n_repeats: int = 100,
+    stratified: bool = False,
+    random_state: int = 0,
+    flipped: bool = False,
+) -> dict:
+    """
+    Perform repeated K‑fold (optionally stratified) CV, compute each metric per fold,
+    then return:
+      - average: dict of average metric over all folds and repeats
+      - pooled:  dict of metric computed on all test‑fold predictions concatenated
+    """
+    all_average = []
+    all_pooled = []
+
+    for i in range(n_repeats):
+        results = run_cv(
+            model,
+            X,
+            y,
+            metrics,
+            n_splits=n_splits,
+            stratified=stratified,
+            random_state=random_state + i,
+            flipped=flipped,
+        )
+        all_average.append(results["average"])
+        all_pooled.append(results["pooled"])
+
+    # compute overall averages
+    final_average_mean = {name: np.mean([res[name] for res in all_average]) for name in metrics.keys()}
+    final_pooled_mean = {name: np.mean([res[name] for res in all_pooled]) for name in metrics.keys()}
+
+    final_average_std = {name: np.std([res[name] for res in all_average]) for name in metrics.keys()}
+    final_pooled_std = {name: np.std([res[name] for res in all_pooled]) for name in metrics.keys()}
+
+    mean = {"average": final_average_mean, "pooled": final_pooled_mean}
+    std = {"average": final_average_std, "pooled": final_pooled_std}
+    return mean, std
