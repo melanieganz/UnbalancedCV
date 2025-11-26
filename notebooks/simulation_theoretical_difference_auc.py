@@ -264,9 +264,8 @@ def plot_cv_data(data, axes=None):
         pos_scores = fold_scores[fold_y == 1]
         neg_scores = fold_scores[fold_y == 0]
 
-        offset = fold * 0.15
         ax1.scatter(
-            [fold + offset] * len(pos_scores),
+            [fold] * len(pos_scores),
             pos_scores,
             alpha=0.3,
             c="red",
@@ -274,14 +273,14 @@ def plot_cv_data(data, axes=None):
             label=f"Fold {fold} Positive" if fold == 0 else "",
         )
         ax1.scatter(
-            [fold + offset] * len(neg_scores),
+            [fold] * len(neg_scores),
             neg_scores,
             alpha=0.3,
             c="blue",
             s=20,
             label=f"Fold {fold} Negative" if fold == 0 else "",
         )
-
+    ax1.set_xticks(range(k))
     ax1.set_xlabel("Fold")
     ax1.set_ylabel("Score")
     ax1.grid(True, alpha=0.3)
