@@ -13,6 +13,7 @@ quarto = "^0.1.0"
 matplotlib = "^3.10.1"
 pandas = "^2.2.3"
 statsmodels = "^0.14.4"
+pingouin = "^0.5.5"
 
 [build-system]
 requires = ["poetry-core"]
