@@ -134,7 +134,7 @@ def prep_depression_remission():
     )
     return X_scaled, y_binary
 
-def run_experiment(X, y, ax, flipped: bool = False):
+def run_experiment(X, y, ax, flipped: bool = False, metric: str = "rocauc"):
     # Scale features
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
@@ -153,12 +153,12 @@ def run_experiment(X, y, ax, flipped: bool = False):
                                 flipped=flipped)
 
     # Plot scatter plot of average and pooled AUC have AUC on the y-axis and average or pooled on the x-axis
-    avg_rocauc = [res["rocauc"] for res in results["average"]]
-    pooled_rocauc = [res["rocauc"] for res in results["pooled"]]
+    avg_rocauc = [res[metric] for res in results["average"]]
+    pooled_rocauc = [res[metric] for res in results["pooled"]]
 
     # convert it into a long dataframe with column type and average = 0, pooled = 1
     df = pd.DataFrame({
-        "rocauc": avg_rocauc + pooled_rocauc,
+        metric: avg_rocauc + pooled_rocauc,
         "type": ["average"] * len(avg_rocauc) + ["pooled"] * len(pooled_rocauc),
     })
 
@@ -173,16 +173,16 @@ def run_experiment(X, y, ax, flipped: bool = False):
     pooled_ci_upper = pooled_mean + 1.96 * pooled_se
     pooled_ci_lower = pooled_mean - 1.96 * pooled_se
 
-    print(f"Average ROC AUC over repeats: {avg_mean:.4f}, 95% CI: [{avg_ci_lower:.4f}, {avg_ci_upper:.4f}]")
-    print(f"Pooled ROC AUC over repeats: {pooled_mean:.4f}, 95% CI: [{pooled_ci_lower:.4f}, {pooled_ci_upper:.4f}]")
+    print(f"Average {metric} over repeats: {avg_mean:.4f}, 95% CI: [{avg_ci_lower:.4f}, {avg_ci_upper:.4f}]")
+    print(f"Pooled {metric} over repeats: {pooled_mean:.4f}, 95% CI: [{pooled_ci_lower:.4f}, {pooled_ci_upper:.4f}]")
 
     # statsmodels for testing (use the formula API)
-    model = smf.ols(formula="rocauc ~ C(type)", data=df).fit()
+    model = smf.ols(formula=f"{metric} ~ C(type)", data=df).fit()
     coef_diff = model.params['C(type)[T.pooled]']
     residual_sd = np.sqrt(model.mse_resid)
     cohens_d_sm = coef_diff / residual_sd
 
-    print(f"Difference in pooled ROC AUC (statsmodels): coef={model.params['C(type)[T.pooled]']:.4f} 95%CI[{model.conf_int().loc['C(type)[T.pooled]'][0]:.4f}, {model.conf_int().loc['C(type)[T.pooled]'][1]:.4f}], p={model.pvalues['C(type)[T.pooled]']:.4f}, Cohen's d={cohens_d_sm:.4f}")
+    print(f"Difference in pooled {metric} (statsmodels): coef={model.params['C(type)[T.pooled]']:.4f} 95%CI[{model.conf_int().loc['C(type)[T.pooled]'][0]:.4f}, {model.conf_int().loc['C(type)[T.pooled]'][1]:.4f}], p={model.pvalues['C(type)[T.pooled]']:.4f}, Cohen's d={cohens_d_sm:.4f}")
     print(avg_mean - pooled_mean)
 
     stats = {"average_mean": avg_mean,
@@ -197,8 +197,8 @@ def run_experiment(X, y, ax, flipped: bool = False):
 
     # Plotting
     # boxplot with scatter points
-    ax.scatter([0]*len(avg_rocauc), avg_rocauc, color='blue', alpha=0.6, label='Average ROC AUC', s=4)
-    ax.scatter([1]*len(pooled_rocauc), pooled_rocauc, color='orange', alpha=0.6, label='Pooled ROC AUC', s=4)
+    ax.scatter([0]*len(avg_rocauc), avg_rocauc, color='blue', alpha=0.6, label=f'Average {metric.capitalize()}', s=4)
+    ax.scatter([1]*len(pooled_rocauc), pooled_rocauc, color='orange', alpha=0.6, label=f'Pooled {metric.capitalize()}', s=4)
 
     # plot black point for mean with error bars for 95% CI
     ax.errorbar(0, avg_mean, yerr=[[avg_mean - avg_ci_lower], [avg_ci_upper - avg_mean]], fmt='o', color='black', capsize=3, linewidth=1, markersize=4)
@@ -206,35 +206,36 @@ def run_experiment(X, y, ax, flipped: bool = False):
 
     ax.set_xticks([0, 1])
     ax.set_xticklabels(['Average', 'Pooled'])
-    ax.set_ylabel('ROC AUC')
+    ax.set_ylabel(metric.capitalize())
     ax.set_xlim(-0.5, 1.5)
 
     return stats
 
-    
-if __name__ == "__main__":
+
+def run_experiment_metric(metric: str):
+    """ could be rocauc or prcauc """
     fig, axes = setup_plotting()
 
     # breast cancer
     X_breast_cancer, y_breast_cancer = prep_breast_cancer()
-    stats_breast_cancer = run_experiment(X_breast_cancer, y_breast_cancer, axes[0])
+    stats_breast_cancer = run_experiment(X_breast_cancer, y_breast_cancer, axes[0], metric=metric)
     axes[0].set_xlabel('a)')
 
     # cognitive impairment
     X_cognitive_impairment, y_cognitive_impairment = prep_cognitive_impairment()
-    stats_cognitive_impairment = run_experiment(X_cognitive_impairment, y_cognitive_impairment, axes[1])
+    stats_cognitive_impairment = run_experiment(X_cognitive_impairment, y_cognitive_impairment, axes[1], metric=metric)
     axes[1].set_xlabel('b)')
 
     # depression remission
     X_depression_remission, y_depression_remission = prep_depression_remission()
-    stats_depression_remission = run_experiment(X_depression_remission, y_depression_remission, axes[2], flipped=True)
+    stats_depression_remission = run_experiment(X_depression_remission, y_depression_remission, axes[2], flipped=True, metric=metric)
     axes[2].set_xlabel('c)')
 
     # plot finalization
     fig.tight_layout()
     plt.show()
-    fig.savefig("example_repeated_cv.png")
-    fig.savefig("example_repeated_cv.pdf")
+    fig.savefig(f"example_repeated__{metric}_cv.png")
+    fig.savefig(f"example_repeated_{metric}_cv.pdf")
 
     # stats output (make one table to be saved as tsv)
     stats = pd.DataFrame({
@@ -248,5 +249,11 @@ if __name__ == "__main__":
     stats = stats.round(5)
     # transpose the dataframe
     stats = stats.T
-    stats.to_csv("example_repeated_cv_stats.csv", sep=",")
+    stats.to_csv(f"example_repeated_{metric}_cv_stats.csv", sep=",")
+
+    
+if __name__ == "__main__":
+    run_experiment_metric("rocauc")
+    run_experiment_metric("prcauc")
+
 
