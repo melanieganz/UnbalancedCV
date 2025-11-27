@@ -84,7 +84,7 @@ def run_cv(
     return {"average": average, "pooled": pooled, "probs": y_prob_folds, "true": y_true_folds}
 
 
-def repeated_cv(
+def run_repeated_cv(
     model,
     X: np.ndarray,
     y: np.ndarray,
@@ -98,7 +98,7 @@ def repeated_cv(
     """
     Perform repeated K‑fold (optionally stratified) CV, compute each metric per fold,
     then return:
-      - average: dict of average metric over all folds and repeats
+      - average: dict of average metric over folds
       - pooled:  dict of metric computed on all test‑fold predictions concatenated
     """
     all_average = []
@@ -118,13 +118,5 @@ def repeated_cv(
         all_average.append(results["average"])
         all_pooled.append(results["pooled"])
 
-    # compute overall averages
-    final_average_mean = {name: np.mean([res[name] for res in all_average]) for name in metrics.keys()}
-    final_pooled_mean = {name: np.mean([res[name] for res in all_pooled]) for name in metrics.keys()}
-
-    final_average_std = {name: np.std([res[name] for res in all_average]) for name in metrics.keys()}
-    final_pooled_std = {name: np.std([res[name] for res in all_pooled]) for name in metrics.keys()}
-
-    mean = {"average": final_average_mean, "pooled": final_pooled_mean}
-    std = {"average": final_average_std, "pooled": final_pooled_std}
-    return mean, std
+    # return dict with lists of pooled and average metrics
+    return {"average": all_average, "pooled": all_pooled}
