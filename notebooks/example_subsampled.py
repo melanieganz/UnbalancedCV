@@ -45,29 +45,23 @@ def setup_plotting():
     return fig, axes
 
 
-def prep_breast_cancer(sample_percentage, seed=1):
-    """
-    Example 1: Breast Cancer Prediction
-    ====================================
-    Classification task: predict whether the subject has cancer or not.
-    """
-    X, y = load_breast_cancer(return_X_y=True)
-
-    # randomly subsample so that the dataset contains sample_percentage percent of the total data
+def subsample_dataset(X, y, sample_percentage, seed=1):
+    """Randomly subsample the dataset to the given percentage."""
     np.random.seed(seed)
     n_samples = X.shape[0]
     n_subsample = int(n_samples * sample_percentage / 100)
     indices = np.random.choice(n_samples, n_subsample, replace=False)
 
-    X_subsapled = X[indices]
+    X_subsampled = X[indices]
     y_subsampled = y[indices]
 
-    # print dataset shape
-    print(f"Dataset shape: {X_subsapled.shape}")
+   # print dataset shape
+    print(f"Dataset shape: {X_subsampled.shape}")
     # Check class balance
     print(f"Class distribution:\n{sum(y_subsampled)} positive, {len(y_subsampled) - sum(y_subsampled)} negative, ratio: {sum(y_subsampled) / len(y_subsampled):.2f}")
-    return X_subsapled, y_subsampled
-    
+
+    return X_subsampled, y_subsampled
+
 
 def run_experiment(X, y, flipped: bool = False, metric: str = "rocauc"):
     # Scale features
@@ -138,8 +132,9 @@ if __name__ == "__main__":
 
     subsample_percentages = [100, 90, 80, 70, 60, 50]
     results = []
+    X_cancer, y_cancer = load_breast_cancer(return_X_y=True)
     for percentage in subsample_percentages:
-        X_subsampled, y_subsampled = prep_breast_cancer(percentage, 1)
+        X_subsampled, y_subsampled = subsample_dataset(X_cancer, y_cancer, percentage, seed=1)
         stats = run_experiment(X_subsampled, y_subsampled, metric="rocauc")
         print(stats)
         results.append(stats)
