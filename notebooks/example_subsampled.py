@@ -67,77 +67,7 @@ def prep_breast_cancer(sample_percentage, seed=1):
     # Check class balance
     print(f"Class distribution:\n{sum(y_subsampled)} positive, {len(y_subsampled) - sum(y_subsampled)} negative, ratio: {sum(y_subsampled) / len(y_subsampled):.2f}")
     return X_subsapled, y_subsampled
-
-def prep_cognitive_impairment():
-    print("\n" + "=" * 60)
-    print("Example 2: Cognitive Impairment Classification")
-    print("=" * 60)
-
-    # Load the dataset
-    data_path = Path(__file__).parent.parent / "data" / "oasis3_fs_mci.tsv"
-    df = pd.read_csv(data_path, sep="\t")
-
-    print(f"Dataset shape: {df.shape}")
-
-    # drop rows that have empty cells / NAs
-    df = df.dropna(axis=0, how="any")
-
-    # only keep first occurence of each subject
-    df_baseline = df.drop_duplicates(subset=["subject"], keep="first")
-    print(f"Shape of baseline data: {df_baseline.shape}")
-
-    # split into X
-    X = df_baseline.drop(columns=["subject", "session", "age", "cognitiveyly_normal"])
-    X = X.apply(pd.to_numeric, errors="coerce")
-    X = X.to_numpy()
-
-    # standardize features
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
-    # and y
-    y = df_baseline["cognitiveyly_normal"].to_numpy()
-    y_binary = (y == True).astype(int)
-
-    # Check class balance
-    print(
-        f"Class distribution:\n{sum(y_binary)} positive, {len(y_binary) - sum(y_binary)} negative, ratio: {sum(y_binary) / len(y_binary):.2f}"
-    )
-    return X_scaled, y_binary
-
-
-def prep_depression_remission():
-    print("\n" + "=" * 60)
-    print("Example 3: Depression Remission Prediction")
-    print("=" * 60)
-
-    # Load the dataset
-    data_path = Path(__file__).parent.parent / "data" / "np1_fs_mdd_episode.csv"
-    df = pd.read_csv(data_path, sep=",")
-
-    print(f"Dataset shape: {df.shape}")
-
-    # drop rows that have empty cells / NAs
-    df = df.dropna(axis=0, how="any")
-
-    print(f"Shape of baseline data: {df.shape}")
-
-    X = df.drop(columns=["mdd_episode", "diagnosis"])
-    X = X.to_numpy()
-
-    # standardize features
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
-    # and y
-    y = df["mdd_episode"].to_numpy()
-    y_binary = (y == "Recurrent").astype(bool)
-
-    # Check class balance
-    print(
-        f"Class distribution:\n{sum(y_binary)} positive, {len(y_binary) - sum(y_binary)} negative, ratio: {sum(y_binary) / len(y_binary):.2f}"
-    )
-    return X_scaled, y_binary
+    
 
 def run_experiment(X, y, flipped: bool = False, metric: str = "rocauc"):
     # Scale features
@@ -203,45 +133,6 @@ def run_experiment(X, y, flipped: bool = False, metric: str = "rocauc"):
     return stats
 
 
-def run_experiment_metric(metric: str):
-    """ could be rocauc or prcauc """
-    fig, axes = setup_plotting()
-
-    # breast cancer
-    X_breast_cancer, y_breast_cancer = prep_breast_cancer()
-    stats_breast_cancer = run_experiment(X_breast_cancer, y_breast_cancer, axes[0], metric=metric)
-    axes[0].set_xlabel('a)')
-
-    # cognitive impairment
-    X_cognitive_impairment, y_cognitive_impairment = prep_cognitive_impairment()
-    stats_cognitive_impairment = run_experiment(X_cognitive_impairment, y_cognitive_impairment, axes[1], metric=metric)
-    axes[1].set_xlabel('b)')
-
-    # depression remission
-    X_depression_remission, y_depression_remission = prep_depression_remission()
-    stats_depression_remission = run_experiment(X_depression_remission, y_depression_remission, axes[2], flipped=True, metric=metric)
-    axes[2].set_xlabel('c)')
-
-    # plot finalization
-    fig.tight_layout()
-    plt.show()
-    fig.savefig(f"example_repeated__{metric}_cv.png")
-    fig.savefig(f"example_repeated_{metric}_cv.pdf")
-
-    # stats output (make one table to be saved as tsv)
-    stats = pd.DataFrame({
-        "Breast Cancer": stats_breast_cancer,
-        "Cognitive Impairment": stats_cognitive_impairment,
-        "Depression Remission": stats_depression_remission
-    })
-
-
-    # round to 5 decimal places
-    stats = stats.round(5)
-    # transpose the dataframe
-    stats = stats.T
-    stats.to_csv(f"example_repeated_{metric}_cv_stats.csv", sep=",")
-    
 if __name__ == "__main__":
     fig, axes = setup_plotting()
 
