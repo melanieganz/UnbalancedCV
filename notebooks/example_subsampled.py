@@ -9,6 +9,7 @@ import statsmodels.formula.api as smf
 from sklearn.datasets import load_breast_cancer
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
+from ucimlrepo import fetch_ucirepo 
 
 # Import our custom functions
 import sys
@@ -39,10 +40,145 @@ def setup_plotting():
         }
     )
     cm = 1 / 2.54
-    fig_width = 17 * cm /3
+    fig_width = 17 * cm 
     fig_height = 17 * cm / 3
-    fig, axes = plt.subplots(1, 1, figsize=(fig_width, fig_height), sharey=False)
+    fig, axes = plt.subplots(1, 4, figsize=(fig_width, fig_height), sharey=False)
     return fig, axes
+
+def load_heart_failure_data():
+    # fetch dataset 
+    heart_failure_clinical_records = fetch_ucirepo(id=519) 
+    
+    # data (as pandas dataframes) 
+    X = heart_failure_clinical_records.data.features
+    X = X.apply(lambda col: col.astype('category').cat.codes if col.dtype == 'object' else col)
+    X = X.to_numpy()
+
+    y = heart_failure_clinical_records.data.targets.to_numpy().ravel()
+
+    # convert y to int or bool
+    y = (y == 1).astype(int)
+
+    # remove nans
+    X, y = drop_nans(X,y)
+
+    return X, y
+
+
+def load_obesity_data(): 
+    # fetch dataset 
+    estimation_of_obesity_levels_based_on_eating_habits_and_physical_condition = fetch_ucirepo(id=544) 
+    
+    # data (as pandas dataframes) 
+    X = estimation_of_obesity_levels_based_on_eating_habits_and_physical_condition.data.features
+   
+    X = X.apply(lambda col: col.astype('category').cat.codes if col.dtype == 'object' else col)
+    X = X.to_numpy()
+
+    y = estimation_of_obesity_levels_based_on_eating_habits_and_physical_condition.data.targets.to_numpy().ravel()
+
+    # only keep 'Normal_Weight' and 'Overweight_Level_II'
+    keep = np.isin(y, ['Normal_Weight', 'Overweight_Level_II'])
+    
+    X = X[keep]
+    y = y[keep]
+
+    # convert y to int or bool
+    y = (y == 'Overweight_Level_II').astype(int)
+
+    # remove nans
+    X, y = drop_nans(X,y)
+
+    return X, y
+
+
+def load_heart_disease_data():
+    # fetch dataset 
+    heart_disease = fetch_ucirepo(id=45) 
+    
+    # data (as pandas dataframes) 
+    X = heart_disease.data.features
+    # make sure that categories are converted to integers
+    X = X.apply(lambda col: col.astype('category').cat.codes if col.dtype == 'object' else col)
+    X = X.to_numpy()
+    y = heart_disease.data.targets.to_numpy().ravel()
+
+    # only keep level 0 and 4
+    keep = np.isin(y, [0,4])
+    X = X[keep]
+    y = y[keep]
+
+    # convert to bool
+    y = (y==4).astype(int)
+
+    # remove nans
+    X, y = drop_nans(X,y)
+
+    return X, y
+
+
+def load_cognitive_impairment():
+    # Load the dataset
+    data_path = Path(__file__).parent.parent / "data" / "oasis3_fs_mci.tsv"
+    df = pd.read_csv(data_path, sep="\t")
+
+    print(f"Dataset shape: {df.shape}")
+
+    # drop rows that have empty cells / NAs
+    df = df.dropna(axis=0, how="any")
+
+    # only keep first occurence of each subject
+    df_baseline = df.drop_duplicates(subset=["subject"], keep="first")
+    print(f"Shape of baseline data: {df_baseline.shape}")
+
+    # split into X
+    X = df_baseline.drop(columns=["subject", "session", "age", "cognitiveyly_normal"])
+    X = X.apply(pd.to_numeric, errors="coerce")
+    X = X.to_numpy()
+
+    # standardize features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # and y
+    y = df_baseline["cognitiveyly_normal"].to_numpy()
+    y_binary = (y == True).astype(int)
+
+    # Check class balance
+    print(
+        f"Class distribution:\n{sum(y_binary)} positive, {len(y_binary) - sum(y_binary)} negative, ratio: {sum(y_binary) / len(y_binary):.2f}"
+    )
+    return X_scaled, y_binary
+
+
+def load_depression_remission():
+    # Load the dataset
+    data_path = Path(__file__).parent.parent / "data" / "np1_fs_mdd_episode.csv"
+    df = pd.read_csv(data_path, sep=",")
+
+    print(f"Dataset shape: {df.shape}")
+
+    # drop rows that have empty cells / NAs
+    df = df.dropna(axis=0, how="any")
+
+    print(f"Shape of baseline data: {df.shape}")
+
+    X = df.drop(columns=["mdd_episode", "diagnosis"])
+    X = X.to_numpy()
+
+    # standardize features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # and y
+    y = df["mdd_episode"].to_numpy()
+    y_binary = (y == "Recurrent").astype(bool)
+
+    # Check class balance
+    print(
+        f"Class distribution:\n{sum(y_binary)} positive, {len(y_binary) - sum(y_binary)} negative, ratio: {sum(y_binary) / len(y_binary):.2f}"
+    )
+    return X_scaled, y_binary
 
 
 def subsample_dataset(X, y, sample_percentage, seed=1):
@@ -55,12 +191,21 @@ def subsample_dataset(X, y, sample_percentage, seed=1):
     X_subsampled = X[indices]
     y_subsampled = y[indices]
 
-   # print dataset shape
+    # print dataset shape
     print(f"Dataset shape: {X_subsampled.shape}")
     # Check class balance
     print(f"Class distribution:\n{sum(y_subsampled)} positive, {len(y_subsampled) - sum(y_subsampled)} negative, ratio: {sum(y_subsampled) / len(y_subsampled):.2f}")
 
     return X_subsampled, y_subsampled
+
+
+def drop_nans (X,y): 
+    # funtion to drop rows with NaNs in X. should remove the coresponding entries in y as well.
+    not_nan = ~np.isnan(X).any(axis=1)
+
+    X_clean = X[not_nan]
+    y_clean = y[not_nan]
+    return X_clean, y_clean
 
 
 def run_experiment(X, y, flipped: bool = False, metric: str = "rocauc"):
@@ -85,67 +230,39 @@ def run_experiment(X, y, flipped: bool = False, metric: str = "rocauc"):
     avg_rocauc = [res[metric] for res in results["average"]]
     pooled_rocauc = [res[metric] for res in results["pooled"]]
 
-    # convert it into a long dataframe with column type and average = 0, pooled = 1
-    df = pd.DataFrame({
-        metric: avg_rocauc + pooled_rocauc,
-        "type": ["average"] * len(avg_rocauc) + ["pooled"] * len(pooled_rocauc),
-    })
-
-    # stats
     avg_mean = np.mean(avg_rocauc)
-    avg_se = np.std(avg_rocauc) / (len(avg_rocauc) ** 0.5)
-    avg_ci_upper = avg_mean + 1.96 * avg_se
-    avg_ci_lower = avg_mean - 1.96 * avg_se
-
     pooled_mean = np.mean(pooled_rocauc)
-    pooled_se = np.std(pooled_rocauc) / (len(pooled_rocauc) ** 0.5)
-    pooled_ci_upper = pooled_mean + 1.96 * pooled_se
-    pooled_ci_lower = pooled_mean - 1.96 * pooled_se
 
-    print(f"Average {metric} over repeats: {avg_mean:.4f}, 95% CI: [{avg_ci_lower:.4f}, {avg_ci_upper:.4f}]")
-    print(f"Pooled {metric} over repeats: {pooled_mean:.4f}, 95% CI: [{pooled_ci_lower:.4f}, {pooled_ci_upper:.4f}]")
+    # paired t-test
+    diff = np.array(avg_rocauc) - np.array(pooled_rocauc)
+    model = smf.ols(formula="diff ~ 1", data=pd.DataFrame({"diff": diff})).fit()
+    coef_diff = model.params['Intercept']
+    ci_lower = model.conf_int().loc['Intercept'][0]
+    ci_upper = model.conf_int().loc['Intercept'][1]
+    p_value = model.pvalues['Intercept']
+    cohens_d = pg.compute_effsize(avg_rocauc, pooled_rocauc, paired=True, eftype='cohen')
 
-    # statsmodels for testing (use the formula API)
-    model = smf.ols(formula=f"{metric} ~ C(type)", data=df).fit()
-    coef_diff = model.params['C(type)[T.pooled]']
-    residual_sd = np.sqrt(model.mse_resid)
-    cohens_d_sm = coef_diff / residual_sd
-
-    print(f"Difference in pooled {metric} (statsmodels): coef={model.params['C(type)[T.pooled]']:.4f} 95%CI[{model.conf_int().loc['C(type)[T.pooled]'][0]:.4f}, {model.conf_int().loc['C(type)[T.pooled]'][1]:.4f}], p={model.pvalues['C(type)[T.pooled]']:.4f}, Cohen's d={cohens_d_sm:.4f}")
-    print(avg_mean - pooled_mean)
+    print(f"Difference in pooled {metric} (statsmodels): coef={coef_diff:.4f} 95%CI[{ci_lower:.4f}, {ci_upper:.4f}], p={p_value:.4f}, Cohen's d={cohens_d:.4f}")
 
     stats = {"average_mean": avg_mean,
              "pooled_mean": pooled_mean,
              "diff": coef_diff,
-             "95_ci_lower": model.conf_int().loc['C(type)[T.pooled]'][0],
-             "95_ci_upper": model.conf_int().loc['C(type)[T.pooled]'][1],
-             "p_value": model.pvalues['C(type)[T.pooled]'],
-             "cohens_d": cohens_d_sm,
+             "95_ci_lower": ci_lower,
+             "95_ci_upper": ci_upper,
+             "p_value": p_value,
+             "cohens_d": cohens_d,
              "N": len(y),
              "positive_class_ratio": sum(y) / len(y)}
 
     return stats
 
 
-if __name__ == "__main__":
-    fig, axes = setup_plotting()
-
-    subsample_percentages = [100, 90, 80, 70, 60, 50]
-    results = []
-    X_cancer, y_cancer = load_breast_cancer(return_X_y=True)
-    for percentage in subsample_percentages:
-        X_subsampled, y_subsampled = subsample_dataset(X_cancer, y_cancer, percentage, seed=1)
-        stats = run_experiment(X_subsampled, y_subsampled, metric="rocauc")
-        print(stats)
-        results.append(stats)
-
-    df = pd.DataFrame(results)
-    print(df)
+def plot_results(ax, df, n_samples, n_features):
     lower = df["diff"] - df["95_ci_lower"]
     upper = df["95_ci_upper"] - df["diff"]
     yerr = np.vstack([lower.to_numpy(), upper.to_numpy()])  # shape (2, N)
-    axes.errorbar(
-        subsample_percentages,
+    ax.errorbar(
+        df["subsample_percentage"],
         df["diff"],
         yerr=yerr,
         fmt='o',
@@ -154,10 +271,106 @@ if __name__ == "__main__":
         linewidth=1,
         markersize=4,
     )
+    ax.set_title(f"Total N: {n_samples}\nFeatures: {n_features}")
+    ax.set_xticks(subsample_percentages)
+    ax.set_xlabel("Dataset Size\n[\% of Original]")
+    ax.set_ylabel("Difference Averaged - Pooled")
+    
 
-    axes.set_xticks(subsample_percentages)
-    axes.set_xlabel("Dataset Size in Percent")
-    axes.set_ylabel("Difference Pooled - Averaged")
+def convert_dict_to_df(results_list, subsample_percentages, dataset_name):
+    """Convert list of result dicts to a DataFrame."""
+    df = pd.DataFrame(results_list)
+    df["subsample_percentage"] = subsample_percentages
+    df["dataset_name"] = dataset_name
+    return df
+
+
+def format_table(df):
+    """Format the results DataFrame for better readability."""
+    df_formatted = df.copy()
+    df_formatted["$\mu_{avg}$"] = df_formatted["average_mean"].map("{:.4f}".format)
+    df_formatted["$\mu_{pooled}$"] = df_formatted["pooled_mean"].map("{:.4f}".format)
+    df_formatted["$\mu_{avg}$ - $\mu_{pooled}$ [95\% CI]"] = df_formatted.apply(
+        lambda row: f"{row['diff']:.4f} [{row['95_ci_lower']:.4f}, {row['95_ci_upper']:.4f}]",
+        axis=1,
+    )
+    df_formatted["95_ci"] = df_formatted.apply(lambda row: f"[{row['95_ci_lower']:.4f}, {row['95_ci_upper']:.4f}]", axis=1)
+    df_formatted["p-value"] = df_formatted["p_value"].map("{:.4f}".format)
+    df_formatted["p-value"] = [f"<0.0001" if float(p_val) < 0.0001 else p_val for p_val in df_formatted["p-value"]]
+
+    df_formatted["cohen's d"] = df_formatted["cohens_d"].map("{:.4f}".format)
+    df_formatted = df_formatted.drop(columns=["95_ci_lower", "95_ci_upper"])
+
+    df_formatted = df_formatted.rename(columns={
+        "dataset_name": "Dataset",
+        "subsample_percentage": "Subsample Percentage",
+        "positive_class_ratio": "$p$",})
+
+    # dataset_name, subsample_percentage, N, positive_class_ratio, average_mean, pooled_mean, diff, 95_ci_lower, 95_ci_upper, p_value, cohens_d
+    df_formatted = df_formatted[["Dataset", "Subsample Percentage", "N", "$p$", "$\mu_{avg}$", "$\mu_{pooled}$", "$\mu_{avg}$ - $\mu_{pooled}$ [95\% CI]", "p-value", "cohen's d"]]
+    df_formatted = df_formatted.round(4)
+    return df_formatted
+
+if __name__ == "__main__":
+    fig, axes = setup_plotting()
+
+    subsample_percentages = [100, 90, 80, 70, 60, 50]
+    X_cancer, y_cancer = load_breast_cancer(return_X_y=True)
+    X_heart_failure, y_heart_failure = load_heart_failure_data()
+    X_obesity, y_obesity = load_obesity_data()
+    X_heart_disease, y_heart_disease = load_heart_disease_data()
+    X_cognitive_impairment, y_cognitive_impairment = load_cognitive_impairment()
+    X_depression_remission, y_depression_remission = load_depression_remission()
+
+    results_cancer = []
+    results_heart_failure = []
+    results_obesity = []
+    results_heart_disease = []
+    results_cognitive_impairment = []
+    results_depression_remission = []
+
+    for percentage in subsample_percentages:
+        X_cancer_subsampled, y_cancer_subsampled = subsample_dataset(X_cancer, y_cancer, percentage, seed=1)
+        stats_cancer = run_experiment(X_cancer_subsampled, y_cancer_subsampled, metric="rocauc")
+        results_cancer.append(stats_cancer)
+
+        X_heart_failure_subsampled, y_heart_failure_subsampled = subsample_dataset(X_heart_failure, y_heart_failure, percentage, seed=1)
+        stats_heart_failure = run_experiment(X_heart_failure_subsampled, y_heart_failure_subsampled, metric="rocauc")
+        results_heart_failure.append(stats_heart_failure)
+
+        X_obesity_subsampled, y_obesity_subsampled = subsample_dataset(X_obesity, y_obesity, percentage, seed=1)
+        stats_obesity = run_experiment(X_obesity_subsampled, y_obesity_subsampled, metric="rocauc")
+        results_obesity.append(stats_obesity)
+
+        X_heart_disease_subsampled, y_heart_disease_subsampled = subsample_dataset(X_heart_disease, y_heart_disease, percentage, seed=1)
+        stats_heart_disease = run_experiment(X_heart_disease_subsampled, y_heart_disease_subsampled, metric="rocauc")
+        results_heart_disease.append(stats_heart_disease)
+
+        X_cognitive_impairment_subsampled, y_cognitive_impairment_subsampled = subsample_dataset(X_cognitive_impairment, y_cognitive_impairment, percentage, seed=1)
+        stats_cognitive_impairment = run_experiment(X_cognitive_impairment_subsampled, y_cognitive_impairment_subsampled, metric="rocauc")
+        results_cognitive_impairment.append(stats_cognitive_impairment)
+
+        X_depression_remission_subsampled, y_depression_remission_subsampled = subsample_dataset(X_depression_remission, y_depression_remission, percentage, seed=1)
+        stats_depression_remission = run_experiment(X_depression_remission_subsampled, y_depression_remission_subsampled, flipped=True, metric="rocauc")
+        results_depression_remission.append(stats_depression_remission)
+
+
+    results_cancer = convert_dict_to_df(results_cancer, subsample_percentages, dataset_name="Breast Cancer")
+    results_heart_failure = convert_dict_to_df(results_heart_failure, subsample_percentages, dataset_name="Heart Failure")
+    results_heart_disease = convert_dict_to_df(results_heart_disease, subsample_percentages, dataset_name="Heart Disease")
+    results_obesity = convert_dict_to_df(results_obesity, subsample_percentages, dataset_name="Obesity")
+    results_cognitive_impairment = convert_dict_to_df(results_cognitive_impairment, subsample_percentages, dataset_name="Cognitive Impairment")
+    results_depression_remission = convert_dict_to_df(results_depression_remission, subsample_percentages, dataset_name="Depression Remission")
+
+    plot_results(axes[0], results_cancer, X_cancer.shape[0], X_cancer.shape[1])
+    plot_results(axes[1], results_heart_failure, X_heart_failure.shape[0], X_heart_failure.shape[1])
+    plot_results(axes[2], results_heart_disease, X_heart_disease.shape[0], X_heart_disease.shape[1])
+    plot_results(axes[3], results_cognitive_impairment, X_cognitive_impairment.shape[0], X_cognitive_impairment.shape[1])
     fig.tight_layout()
-    fig.savefig(f"example_subsampled_rocauc_cv.png")
+    fig.savefig(f"example_subsampled_multiple_rocauc.png")
     plt.show()
+
+    df_total = pd.concat([results_cancer, results_heart_failure, results_heart_disease, results_obesity, results_cognitive_impairment, results_depression_remission], ignore_index=True)
+    df_total_formatted = format_table(df_total)
+    print(df_total_formatted)
+    df_total_formatted.to_csv(f"example_subsampled_multiple_rocauc_stats.csv", sep=",", index=False)

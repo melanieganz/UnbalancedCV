@@ -176,22 +176,23 @@ def run_experiment(X, y, ax, flipped: bool = False, metric: str = "rocauc"):
     print(f"Average {metric} over repeats: {avg_mean:.4f}, 95% CI: [{avg_ci_lower:.4f}, {avg_ci_upper:.4f}]")
     print(f"Pooled {metric} over repeats: {pooled_mean:.4f}, 95% CI: [{pooled_ci_lower:.4f}, {pooled_ci_upper:.4f}]")
 
-    # statsmodels for testing (use the formula API)
-    model = smf.ols(formula=f"{metric} ~ C(type)", data=df).fit()
-    coef_diff = model.params['C(type)[T.pooled]']
-    residual_sd = np.sqrt(model.mse_resid)
-    cohens_d_sm = coef_diff / residual_sd
+    # Paired t-test (using statsmodels)
+    diff = np.array(avg_rocauc) - np.array(pooled_rocauc)
+    model_paired = smf.ols(formula="diff ~ 1", data=pd.DataFrame({"diff": diff})).fit()
+    coef_diff = model_paired.params['Intercept']
+    ci_lower = model_paired.conf_int().loc['Intercept'][0]
+    ci_upper = model_paired.conf_int().loc['Intercept'][1]
+    p_value = model_paired.pvalues['Intercept']
 
-    print(f"Difference in pooled {metric} (statsmodels): coef={model.params['C(type)[T.pooled]']:.4f} 95%CI[{model.conf_int().loc['C(type)[T.pooled]'][0]:.4f}, {model.conf_int().loc['C(type)[T.pooled]'][1]:.4f}], p={model.pvalues['C(type)[T.pooled]']:.4f}, Cohen's d={cohens_d_sm:.4f}")
-    print(avg_mean - pooled_mean)
+    cohens_d = pg.compute_effsize(avg_rocauc, pooled_rocauc, paired=True, eftype='cohen')
 
     stats = {"average_mean": avg_mean,
              "pooled_mean": pooled_mean,
              "diff": coef_diff,
-             "95_ci_lower": model.conf_int().loc['C(type)[T.pooled]'][0],
-             "95_ci_upper": model.conf_int().loc['C(type)[T.pooled]'][1],
-             "p_value": model.pvalues['C(type)[T.pooled]'],
-             "cohens_d": cohens_d_sm,
+             "95_ci_lower": ci_lower,
+             "95_ci_upper": ci_upper,
+             "p_value": p_value,
+             "cohens_d": cohens_d,
              "N": len(y),
              "positive_class_ratio": sum(y) / len(y)}
 
