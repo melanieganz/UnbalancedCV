@@ -298,7 +298,7 @@ def format_table(df):
     df_formatted["p-value"] = df_formatted["p_value"].map("{:.4f}".format)
     df_formatted["p-value"] = [f"<0.0001" if float(p_val) < 0.0001 else p_val for p_val in df_formatted["p-value"]]
 
-    df_formatted["cohen's d"] = df_formatted["cohens_d"].map("{:.4f}".format)
+    df_formatted["cohen's d"] = df_formatted["cohens_d"].map("{:.2f}".format)
     df_formatted = df_formatted.drop(columns=["95_ci_lower", "95_ci_upper"])
 
     df_formatted = df_formatted.rename(columns={
@@ -309,68 +309,76 @@ def format_table(df):
     # dataset_name, subsample_percentage, N, positive_class_ratio, average_mean, pooled_mean, diff, 95_ci_lower, 95_ci_upper, p_value, cohens_d
     df_formatted = df_formatted[["Dataset", "Subsample Percentage", "N", "$p$", "$\mu_{avg}$", "$\mu_{pooled}$", "$\mu_{avg}$ - $\mu_{pooled}$ [95\% CI]", "p-value", "cohen's d"]]
     df_formatted = df_formatted.round(4)
+    
+    # round to 2 decimals for: Subsample Percentage, p, "cohen's d"
+    df_formatted["Subsample Percentage"] = df_formatted["Subsample Percentage"].round(2)
+    df_formatted["$p$"] = df_formatted["$p$"].round(2)
+    
     return df_formatted
 
 if __name__ == "__main__":
-    fig, axes = setup_plotting()
+    for metric in ["rocauc", "prcauc"]:
+        print(f"Running experiments for metric: {metric}")
+        fig, axes = setup_plotting()
 
-    subsample_percentages = [100, 90, 80, 70, 60, 50]
-    X_cancer, y_cancer = load_breast_cancer(return_X_y=True)
-    X_heart_failure, y_heart_failure = load_heart_failure_data()
-    X_obesity, y_obesity = load_obesity_data()
-    X_heart_disease, y_heart_disease = load_heart_disease_data()
-    X_cognitive_impairment, y_cognitive_impairment = load_cognitive_impairment()
-    X_depression_remission, y_depression_remission = load_depression_remission()
+        subsample_percentages = [100, 90, 80, 70, 60, 50]
+        X_cancer, y_cancer = load_breast_cancer(return_X_y=True)
+        X_heart_failure, y_heart_failure = load_heart_failure_data()
+        X_obesity, y_obesity = load_obesity_data()
+        X_heart_disease, y_heart_disease = load_heart_disease_data()
+        X_cognitive_impairment, y_cognitive_impairment = load_cognitive_impairment()
+        X_depression_remission, y_depression_remission = load_depression_remission()
 
-    results_cancer = []
-    results_heart_failure = []
-    results_obesity = []
-    results_heart_disease = []
-    results_cognitive_impairment = []
-    results_depression_remission = []
+        results_cancer = []
+        results_heart_failure = []
+        results_obesity = []
+        results_heart_disease = []
+        results_cognitive_impairment = []
+        results_depression_remission = []
 
-    for percentage in subsample_percentages:
-        X_cancer_subsampled, y_cancer_subsampled = subsample_dataset(X_cancer, y_cancer, percentage, seed=1)
-        stats_cancer = run_experiment(X_cancer_subsampled, y_cancer_subsampled, metric="rocauc")
-        results_cancer.append(stats_cancer)
+        for percentage in subsample_percentages:
+            X_cancer_subsampled, y_cancer_subsampled = subsample_dataset(X_cancer, y_cancer, percentage, seed=1)
+            stats_cancer = run_experiment(X_cancer_subsampled, y_cancer_subsampled, metric=metric)
+            results_cancer.append(stats_cancer)
 
-        X_heart_failure_subsampled, y_heart_failure_subsampled = subsample_dataset(X_heart_failure, y_heart_failure, percentage, seed=1)
-        stats_heart_failure = run_experiment(X_heart_failure_subsampled, y_heart_failure_subsampled, metric="rocauc")
-        results_heart_failure.append(stats_heart_failure)
+            X_heart_failure_subsampled, y_heart_failure_subsampled = subsample_dataset(X_heart_failure, y_heart_failure, percentage, seed=1)
+            stats_heart_failure = run_experiment(X_heart_failure_subsampled, y_heart_failure_subsampled, metric=metric)
+            results_heart_failure.append(stats_heart_failure)
 
-        X_obesity_subsampled, y_obesity_subsampled = subsample_dataset(X_obesity, y_obesity, percentage, seed=1)
-        stats_obesity = run_experiment(X_obesity_subsampled, y_obesity_subsampled, metric="rocauc")
-        results_obesity.append(stats_obesity)
+            X_obesity_subsampled, y_obesity_subsampled = subsample_dataset(X_obesity, y_obesity, percentage, seed=1)
+            stats_obesity = run_experiment(X_obesity_subsampled, y_obesity_subsampled, metric=metric)
+            results_obesity.append(stats_obesity)
 
-        X_heart_disease_subsampled, y_heart_disease_subsampled = subsample_dataset(X_heart_disease, y_heart_disease, percentage, seed=1)
-        stats_heart_disease = run_experiment(X_heart_disease_subsampled, y_heart_disease_subsampled, metric="rocauc")
-        results_heart_disease.append(stats_heart_disease)
+            X_heart_disease_subsampled, y_heart_disease_subsampled = subsample_dataset(X_heart_disease, y_heart_disease, percentage, seed=1)
+            stats_heart_disease = run_experiment(X_heart_disease_subsampled, y_heart_disease_subsampled, metric=metric)
+            results_heart_disease.append(stats_heart_disease)
 
-        X_cognitive_impairment_subsampled, y_cognitive_impairment_subsampled = subsample_dataset(X_cognitive_impairment, y_cognitive_impairment, percentage, seed=1)
-        stats_cognitive_impairment = run_experiment(X_cognitive_impairment_subsampled, y_cognitive_impairment_subsampled, metric="rocauc")
-        results_cognitive_impairment.append(stats_cognitive_impairment)
+            X_cognitive_impairment_subsampled, y_cognitive_impairment_subsampled = subsample_dataset(X_cognitive_impairment, y_cognitive_impairment, percentage, seed=1)
+            stats_cognitive_impairment = run_experiment(X_cognitive_impairment_subsampled, y_cognitive_impairment_subsampled, metric=metric)
+            results_cognitive_impairment.append(stats_cognitive_impairment)
 
-        X_depression_remission_subsampled, y_depression_remission_subsampled = subsample_dataset(X_depression_remission, y_depression_remission, percentage, seed=1)
-        stats_depression_remission = run_experiment(X_depression_remission_subsampled, y_depression_remission_subsampled, flipped=True, metric="rocauc")
-        results_depression_remission.append(stats_depression_remission)
+            X_depression_remission_subsampled, y_depression_remission_subsampled = subsample_dataset(X_depression_remission, y_depression_remission, percentage, seed=1)
+            stats_depression_remission = run_experiment(X_depression_remission_subsampled, y_depression_remission_subsampled, flipped=True, metric=metric)
+            results_depression_remission.append(stats_depression_remission)
 
 
-    results_cancer = convert_dict_to_df(results_cancer, subsample_percentages, dataset_name="Breast Cancer")
-    results_heart_failure = convert_dict_to_df(results_heart_failure, subsample_percentages, dataset_name="Heart Failure")
-    results_heart_disease = convert_dict_to_df(results_heart_disease, subsample_percentages, dataset_name="Heart Disease")
-    results_obesity = convert_dict_to_df(results_obesity, subsample_percentages, dataset_name="Obesity")
-    results_cognitive_impairment = convert_dict_to_df(results_cognitive_impairment, subsample_percentages, dataset_name="Cognitive Impairment")
-    results_depression_remission = convert_dict_to_df(results_depression_remission, subsample_percentages, dataset_name="Depression Remission")
+        results_cancer = convert_dict_to_df(results_cancer, subsample_percentages, dataset_name="Breast Cancer")
+        results_heart_failure = convert_dict_to_df(results_heart_failure, subsample_percentages, dataset_name="Heart Failure")
+        results_heart_disease = convert_dict_to_df(results_heart_disease, subsample_percentages, dataset_name="Heart Disease")
+        results_obesity = convert_dict_to_df(results_obesity, subsample_percentages, dataset_name="Obesity")
+        results_cognitive_impairment = convert_dict_to_df(results_cognitive_impairment, subsample_percentages, dataset_name="Cognitive Impairment")
+        results_depression_remission = convert_dict_to_df(results_depression_remission, subsample_percentages, dataset_name="Depression Remission")
 
-    plot_results(axes[0], results_cancer, X_cancer.shape[0], X_cancer.shape[1])
-    plot_results(axes[1], results_heart_failure, X_heart_failure.shape[0], X_heart_failure.shape[1])
-    plot_results(axes[2], results_heart_disease, X_heart_disease.shape[0], X_heart_disease.shape[1])
-    plot_results(axes[3], results_cognitive_impairment, X_cognitive_impairment.shape[0], X_cognitive_impairment.shape[1])
-    fig.tight_layout()
-    fig.savefig(f"example_subsampled_multiple_rocauc.png")
-    plt.show()
+        plot_results(axes[0], results_cancer, X_cancer.shape[0], X_cancer.shape[1])
+        plot_results(axes[1], results_heart_failure, X_heart_failure.shape[0], X_heart_failure.shape[1])
+        plot_results(axes[2], results_heart_disease, X_heart_disease.shape[0], X_heart_disease.shape[1])
+        plot_results(axes[3], results_cognitive_impairment, X_cognitive_impairment.shape[0], X_cognitive_impairment.shape[1])
+        fig.tight_layout()
+        fig.savefig(f"./results/example_subsampled_multiple_{metric}.png")
+        fig.savefig(f"./results/example_subsampled_multiple_{metric}.pdf")
+        plt.show()
 
-    df_total = pd.concat([results_cancer, results_heart_failure, results_heart_disease, results_obesity, results_cognitive_impairment, results_depression_remission], ignore_index=True)
-    df_total_formatted = format_table(df_total)
-    print(df_total_formatted)
-    df_total_formatted.to_csv(f"example_subsampled_multiple_rocauc_stats.csv", sep=",", index=False)
+        df_total = pd.concat([results_cancer, results_heart_failure, results_heart_disease, results_obesity, results_cognitive_impairment, results_depression_remission], ignore_index=True)
+        df_total_formatted = format_table(df_total)
+        print(df_total_formatted)
+        df_total_formatted.to_csv(f"./results/example_subsampled_multiple_{metric}_stats.csv", sep=",", index=False)
