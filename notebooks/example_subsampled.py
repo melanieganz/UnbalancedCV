@@ -257,7 +257,7 @@ def run_experiment(X, y, flipped: bool = False, metric: str = "rocauc"):
     return stats
 
 
-def plot_results(ax, df, n_samples, n_features):
+def plot_results(ax, df, n_samples, n_features, ylabel):
     lower = df["diff"] - df["95_ci_lower"]
     upper = df["95_ci_upper"] - df["diff"]
     yerr = np.vstack([lower.to_numpy(), upper.to_numpy()])  # shape (2, N)
@@ -267,15 +267,16 @@ def plot_results(ax, df, n_samples, n_features):
         yerr=yerr,
         fmt='o',
         color='black',
-        capsize=3,
-        linewidth=1,
-        markersize=4,
+        capsize=2,
+        linewidth=.9,
+        markersize=3,
     )
+    ax.hlines(0, xmin=df["subsample_percentage"].min()-5, xmax=df["subsample_percentage"].max()+5, colors='gray', linestyles='dashed', linewidth=0.8)
     ax.set_title(f"Total N: {n_samples}\nFeatures: {n_features}")
     ax.set_xticks(subsample_percentages)
     ax.set_xlabel("Dataset Size\n[\% of Original]")
-    ax.set_ylabel("Difference Averaged - Pooled")
-    
+    ax.set_ylabel(ylabel)
+
 
 def convert_dict_to_df(results_list, subsample_percentages, dataset_name):
     """Convert list of result dicts to a DataFrame."""
@@ -317,6 +318,10 @@ def format_table(df):
     return df_formatted
 
 if __name__ == "__main__":
+    ylabels = {
+        "rocauc": r"$AUROC_{avg}$ - $AUROC_{pooled}$",
+        "prcauc": r"$AUPRC_{avg}$ - $AUPRC_{pooled}$",
+        }
     for metric in ["rocauc", "prcauc"]:
         print(f"Running experiments for metric: {metric}")
         fig, axes = setup_plotting()
@@ -369,14 +374,13 @@ if __name__ == "__main__":
         results_cognitive_impairment = convert_dict_to_df(results_cognitive_impairment, subsample_percentages, dataset_name="Cognitive Impairment")
         results_depression_remission = convert_dict_to_df(results_depression_remission, subsample_percentages, dataset_name="Depression Remission")
 
-        plot_results(axes[0], results_cancer, X_cancer.shape[0], X_cancer.shape[1])
-        plot_results(axes[1], results_heart_failure, X_heart_failure.shape[0], X_heart_failure.shape[1])
-        plot_results(axes[2], results_heart_disease, X_heart_disease.shape[0], X_heart_disease.shape[1])
-        plot_results(axes[3], results_cognitive_impairment, X_cognitive_impairment.shape[0], X_cognitive_impairment.shape[1])
+        plot_results(axes[0], results_cancer, X_cancer.shape[0], X_cancer.shape[1], ylabel=ylabels[metric])
+        plot_results(axes[1], results_heart_failure, X_heart_failure.shape[0], X_heart_failure.shape[1], ylabel=ylabels[metric])
+        plot_results(axes[2], results_heart_disease, X_heart_disease.shape[0], X_heart_disease.shape[1], ylabel=ylabels[metric])
+        plot_results(axes[3], results_cognitive_impairment, X_cognitive_impairment.shape[0], X_cognitive_impairment.shape[1], ylabel=ylabels[metric])
         fig.tight_layout()
         fig.savefig(f"./results/example_subsampled_multiple_{metric}.png")
         fig.savefig(f"./results/example_subsampled_multiple_{metric}.pdf")
-        plt.show()
 
         df_total = pd.concat([results_cancer, results_heart_failure, results_heart_disease, results_obesity, results_cognitive_impairment, results_depression_remission], ignore_index=True)
         df_total_formatted = format_table(df_total)
